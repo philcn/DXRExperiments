@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{c744b68c-e443-48e9-ab3f-bb35655a2e99}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Utils">
+      <UniqueIdentifier>{16f4ab12-40a1-4287-a0c5-cbae276826d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets">
+      <UniqueIdentifier>{214a6d10-f543-431f-9bfc-19787eefd28c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Assets\Shaders">
+      <UniqueIdentifier>{644a96a5-f151-4e47-bc59-aa8eaab1d7b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\NvHelpers">
+      <UniqueIdentifier>{66d45583-1d36-4c73-bd90-8665470cac59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\NvHelpers">
+      <UniqueIdentifier>{6ed4ddb1-5c6a-4927-ba1d-d1c5ac437543}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\utils\DXSampleHelper.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\StepTimer.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\Win32Application.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\DeviceResources.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\DirectXRaytracingHelper.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\DXSample.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\DXRFrameworkApp.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\assets\shaders\RaytracingHlslCompat.h">
+      <Filter>Assets\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\assets\shaders\HlslCompat.h">
+      <Filter>Assets\Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\ShaderBindingTableGenerator.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\TopLevelASGenerator.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\BottomLevelASGenerator.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\RaytracingPipelineGenerator.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\RootSignatureGenerator.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dxcapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\dxcapi.use.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\nv_helpers_dx12\DXRHelper.h">
+      <Filter>Header Files\NvHelpers</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\DXSample.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\Win32Application.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\DeviceResources.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DXRFrameworkApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
+      <Filter>Source Files\NvHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\nv_helpers_dx12\TopLevelASGenerator.cpp">
+      <Filter>Source Files\NvHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\nv_helpers_dx12\BottomLevelASGenerator.cpp">
+      <Filter>Source Files\NvHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
+      <Filter>Source Files\NvHelpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\nv_helpers_dx12\RootSignatureGenerator.cpp">
+      <Filter>Source Files\NvHelpers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\assets\shaders\Raytracing.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>

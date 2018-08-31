@@ -1,0 +1,6 @@
+packages/
+vc2015/build/
+Build_VS15/
+
+.vs/
+.DS_Store
