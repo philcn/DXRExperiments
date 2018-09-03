@@ -62,13 +62,13 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)libs\assimp\lib\x64\assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>d3d12.dll</DelayLoadDLLs>
     </Link>
     <CustomBuild>
@@ -81,7 +81,9 @@
 PrebuildCheck.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>cd "$(SolutionDir)..\D3D12RaytracingFallback\Bin\x64\"
+      <Command>xcopy "$(SolutionDir)libs\assimp\bin\x64\assimp-vc140-mt.dll" $(TargetDir) /Y /D
+
+cd "$(SolutionDir)..\D3D12RaytracingFallback\Bin\x64\"
 PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
 </Command>
       <Message>Sideload required DXR binaries.</Message>
@@ -144,6 +146,77 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\utils\DXSampleHelper.h" />
     <ClInclude Include="..\include\utils\StepTimer.h" />
     <ClInclude Include="..\include\utils\Win32Application.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\ai_assert.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\anim.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\BaseImporter.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Bitmap.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\BlobIOSystem.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\camera.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\cexport.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\cfileio.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\cimport.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\color4.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\config.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Defines.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\defs.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Exceptional.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Exporter.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\fast_atof.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\GenericProperty.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Hash.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Importer.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\importerdesc.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\IOStream.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\irrXMLWrapper.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\light.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\LineSplitter.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\LogAux.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Logger.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\LogStream.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Macros.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\material.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\MathFunctions.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\matrix3x3.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\matrix4x4.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\mesh.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\metadata.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\postprocess.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Profiler.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="..\libs\assimp\include\assimp\qnan.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\quaternion.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\RemoveComments.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\scene.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\SpatialSort.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\StandardShapes.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\StreamReader.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\StreamWriter.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\StringComparison.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\StringUtils.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Subdivision.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\texture.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\types.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\vector2.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\vector3.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\version.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\Vertex.h" />
+    <ClInclude Include="..\libs\assimp\include\assimp\XMLTools.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp" />
