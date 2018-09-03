@@ -161,8 +161,7 @@ public:
       ID3D12Resource* resultBuffer,      /// Result buffer storing the acceleration structure
       ID3D12Resource* descriptorsBuffer, /// Auxiliary result buffer containing the instance
                                          /// descriptors, has to be in upload heap
-      std::function<WRAPPED_GPU_POINTER(ID3D12Resource*, UINT)> 
-          createWrappedPtrFunc,
+      std::function<WRAPPED_GPU_POINTER(ID3D12Resource*)> createWrappedPtrFunc,
       bool updateOnly = false, /// If true, simply refit the existing acceleration structure
       ID3D12Resource* previousResult = nullptr /// Optional previous acceleration structure, used
                                                /// if an iterative update is requested
