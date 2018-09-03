@@ -328,3 +328,16 @@ inline bool EnableRaytracing(IDXGIAdapter1* adapter)
         && SUCCEEDED(D3D12CreateDevice(adapter, D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&testDevice)))
         && SUCCEEDED(testDevice->QueryInterface(IID_PPV_ARGS(&testRaytracingDevice)));
 }
+
+inline bool EnableDXRExperimentalFeatures(IDXGIAdapter1* adapter)
+{
+    bool supportsDXRDriver = EnableRaytracing(adapter);
+
+    if (!supportsDXRDriver) {
+        OutputDebugString(L"Could not enable raytracing driver (D3D12EnableExperimentalFeatures() failed).\n");
+        OutputDebugString(L"Enabling compute based fallback raytracing support.\n");
+        ThrowIfFalse(EnableComputeRaytracingFallback(adapter), L"Could not enable compute based fallback raytracing support (D3D12EnableExperimentalFeatures() failed).\n");
+    }
+
+    return supportsDXRDriver;
+}

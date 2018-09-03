@@ -5,7 +5,7 @@ namespace DXRFramework
     class RtModel
     {
     public:
-        using SharedPtr = std::shared_ptr<RtMotel>;
+        using SharedPtr = std::shared_ptr<RtModel>;
         
         static SharedPtr create();
         ~RtModel();

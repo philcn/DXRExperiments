@@ -62,7 +62,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)assets\shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -124,6 +124,13 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\dxcapi.h" />
     <ClInclude Include="..\include\dxcapi.use.h" />
     <ClInclude Include="..\include\DXRFrameworkApp.h" />
+    <ClInclude Include="..\include\DXRFramework\RtBindings.h" />
+    <ClInclude Include="..\include\DXRFramework\RtContext.h" />
+    <ClInclude Include="..\include\DXRFramework\RtModel.h" />
+    <ClInclude Include="..\include\DXRFramework\RtProgram.h" />
+    <ClInclude Include="..\include\DXRFramework\RtScene.h" />
+    <ClInclude Include="..\include\DXRFramework\RtShader.h" />
+    <ClInclude Include="..\include\DXRFramework\RtState.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\BottomLevelASGenerator.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\DXRHelper.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\RaytracingPipelineGenerator.h" />
@@ -140,6 +147,13 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtBindings.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtContext.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtModel.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtProgram.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtScene.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtShader.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtState.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
     <ClCompile Include="..\src\nv_helpers_dx12\BottomLevelASGenerator.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>

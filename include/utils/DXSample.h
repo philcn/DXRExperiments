@@ -14,6 +14,7 @@
 #include "DXSampleHelper.h"
 #include "Win32Application.h"
 #include "DeviceResources.h"
+#include "StepTimer.h"
 
 class DXSample : public DX::IDeviceNotify
 {
@@ -22,7 +23,7 @@ public:
     virtual ~DXSample();
 
     virtual void OnInit() = 0;
-    virtual void OnUpdate() = 0;
+    virtual void OnUpdate();
     virtual void OnRender() = 0;
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized) = 0;
     virtual void OnDestroy() = 0;
@@ -51,6 +52,8 @@ public:
     void SetWindowBounds(int left, int top, int right, int bottom);
     std::wstring GetAssetFullPath(LPCWSTR assetName);
 
+    void CalculateFrameStats();
+
 protected:
     void SetCustomWindowText(LPCWSTR text);
 
@@ -68,6 +71,8 @@ protected:
     // D3D device resources
     UINT m_adapterIDoverride;
     std::unique_ptr<DX::DeviceResources> m_deviceResources;
+
+    StepTimer mTimer;
 
 private:
     // Root assets path.

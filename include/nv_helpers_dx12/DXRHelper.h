@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include "dxcapi.use.h"
 
 namespace nv_helpers_dx12
 {
@@ -54,7 +55,7 @@ static const D3D12_HEAP_PROPERTIES kDefaultHeapProps = {
 //--------------------------------------------------------------------------------------------------
 // Compile a HLSL file into a DXIL library
 //
-IDxcBlob* CompileShaderLibrary(LPCWSTR fileName)
+inline IDxcBlob* CompileShaderLibrary(LPCWSTR fileName)
 {
   static dxc::DxcDllSupport gDxcDllHelper;
   static IDxcCompiler* pCompiler = nullptr;
@@ -124,8 +125,8 @@ IDxcBlob* CompileShaderLibrary(LPCWSTR fileName)
 //--------------------------------------------------------------------------------------------------
 //
 //
-ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, uint32_t count,
-                                           D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
+inline ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, uint32_t count,
+                                                  D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
 {
   D3D12_DESCRIPTOR_HEAP_DESC desc = {};
   desc.NumDescriptors = count;
@@ -142,7 +143,7 @@ ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, uint32_t count,
 //
 //
 template <class Vertex>
-void GenerateMengerSponge(int32_t level, float probability, std::vector<Vertex>& outputVertices,
+inline void GenerateMengerSponge(int32_t level, float probability, std::vector<Vertex>& outputVertices,
                           std::vector<UINT>& outputIndices)
 {
   struct Cube

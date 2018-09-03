@@ -42,6 +42,12 @@ void DXSample::UpdateForSizeChange(UINT clientWidth, UINT clientHeight)
     m_aspectRatio = static_cast<float>(clientWidth) / static_cast<float>(clientHeight);
 }
 
+void DXSample::OnUpdate()
+{
+    mTimer.Tick();
+    CalculateFrameStats();
+}
+
 // Helper function for resolving the full path of assets.
 std::wstring DXSample::GetAssetFullPath(LPCWSTR assetName)
 {
@@ -87,4 +93,29 @@ void DXSample::SetWindowBounds(int left, int top, int right, int bottom)
     m_windowBounds.top = static_cast<LONG>(top);
     m_windowBounds.right = static_cast<LONG>(right);
     m_windowBounds.bottom = static_cast<LONG>(bottom);
+}
+
+void DXSample::CalculateFrameStats()
+{
+    static int frameCnt = 0;
+    static double elapsedTime = 0.0f;
+    double totalTime = mTimer.GetTotalSeconds();
+    frameCnt++;
+
+    if ((totalTime - elapsedTime) >= 1.0f) {
+        float diff = static_cast<float>(totalTime - elapsedTime);
+        float fps = static_cast<float>(frameCnt) / diff; // Normalize to an exact second.
+
+        frameCnt = 0;
+        elapsedTime = totalTime;
+
+        float MRaysPerSecond = (m_width * m_height * fps) / static_cast<float>(1e6);
+
+        wstringstream windowText;
+
+        windowText << setprecision(2) << fixed
+            << L"fps: " << fps << L"     ~Million Primary Rays/s: " << MRaysPerSecond
+            << L"GPU[" << m_deviceResources->GetAdapterID() << L"]: " << m_deviceResources->GetAdapterDescription();
+        SetCustomWindowText(windowText.str().c_str());
+    }
 }
