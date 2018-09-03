@@ -155,7 +155,11 @@ namespace DXRFramework
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0);
             // slot 1, GlobalRootSignatureParams::OutputViewSlot
             rootSigGenerator.AddHeapRangesParameter({
-                {0 /* u0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0 /* offset to heap root argument */}
+                {0 /* u0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0 /* heap offset */},
+            });
+            // slot 2, GlobalRootSignatureParams::CameraParametersSlot
+            rootSigGenerator.AddHeapRangesParameter({
+                {0 /* b0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0 /* heap offset */}
             });
             return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
         #else

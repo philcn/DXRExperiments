@@ -48,4 +48,12 @@ struct Vertex
     XMFLOAT3 normal;
 };
 
+struct CameraParams
+{
+    XMFLOAT4 worldEyePos;
+    XMFLOAT4 U;
+    XMFLOAT4 V;
+    XMFLOAT4 W;
+};
+
 #endif // RAYTRACINGHLSLCOMPAT_H

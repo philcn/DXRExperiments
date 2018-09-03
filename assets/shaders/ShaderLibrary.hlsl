@@ -6,6 +6,10 @@
 
 RWTexture2D<float4> gOutput : register(u0);
 RaytracingAccelerationStructure SceneBVH : register(t0);
+cbuffer CameraConstants : register(b0)
+{
+    CameraParams cameraParams;
+}
 
 [shader("raygeneration")] 
 void RayGen() 
@@ -18,8 +22,8 @@ void RayGen()
     float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
 
     RayDesc ray;
-    ray.Origin = float3(d.x, -d.y, 1);
-    ray.Direction = float3(0, 0, -1);
+    ray.Origin = cameraParams.worldEyePos;
+    ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W);
     ray.TMin = 0;
     ray.TMax = 100000;
 

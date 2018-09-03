@@ -34,6 +34,10 @@ private:
     ComPtr<ID3D12Resource> mOutputResource;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputResourceUAVGpuDescriptor;
 
+    UINT mCameraConstantBufferSize;
+    ComPtr<ID3D12Resource> mCameraConstantBuffer;
+    D3D12_GPU_DESCRIPTOR_HANDLE mCameraCBVGpuDescriptor;
+
     ////////////////////////////////////////////////////////////////////////////////
 
     DXRFramework::RtContext::SharedPtr mRtContext;
@@ -51,4 +55,7 @@ private:
 
     void CreateRaytracingOutputBuffer();
     void CopyRaytracingOutputToBackbuffer();
+
+    void CreateCameraBuffer();
+    void UpdateCameraMatrices(float elapsedTime);
 };

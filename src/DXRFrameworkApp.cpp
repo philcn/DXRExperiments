@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
+#include "nv_helpers_dx12/DXRHelper.h"
+#include "RaytracingHlslCompat.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
 
 using namespace std;
@@ -36,7 +38,7 @@ void DXRFrameworkApp::OnInit()
     BuildAccelerationStructures();
 
     CreateRaytracingOutputBuffer();
-    // UpdateCameraMatrices();
+    CreateCameraBuffer();
 }
 
 void DXRFrameworkApp::InitRaytracing()
@@ -92,6 +94,62 @@ void DXRFrameworkApp::CreateRaytracingOutputBuffer()
     mOutputResourceUAVGpuDescriptor = mRtContext->getDescriptorGPUHandle(outputResourceUAVDescriptorHeapIndex);
 }
 
+void DXRFrameworkApp::CreateCameraBuffer()
+{
+    auto device = m_deviceResources->GetD3DDevice();
+
+    mCameraConstantBufferSize = CalculateConstantBufferByteSize(sizeof(CameraParams));
+
+    mCameraConstantBuffer = nv_helpers_dx12::CreateBuffer(device, mCameraConstantBufferSize, D3D12_RESOURCE_FLAG_NONE,
+        D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE cbvDescriptorHandle;
+    UINT cameraCBVDescriptorHeapIndex = mRtContext->allocateDescriptor(&cbvDescriptorHandle);
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = mCameraConstantBuffer->GetGPUVirtualAddress();
+    cbvDesc.SizeInBytes = mCameraConstantBufferSize;
+    device->CreateConstantBufferView(&cbvDesc, cbvDescriptorHandle);
+    mCameraCBVGpuDescriptor = mRtContext->getDescriptorGPUHandle(cameraCBVDescriptorHeapIndex);
+}
+
+inline void calculateCameraVariables(XMVECTOR eye, XMVECTOR lookat, XMVECTOR up, float yfov, float aspectRatio, XMFLOAT4 *U, XMFLOAT4 *V, XMFLOAT4 *W)
+{
+    float ulen, vlen, wlen;
+    XMVECTOR w = XMVectorSubtract(lookat, eye); // Do not normalize W -- it implies focal length
+    
+    wlen = XMVectorGetX(XMVector3Length(w));
+    XMVECTOR u = XMVector3Normalize(XMVector3Cross(w, up));
+    XMVECTOR v = XMVector3Normalize(XMVector3Cross(u, w));
+
+    vlen = wlen * tanf(0.5f * yfov * XM_PI / 180.0f);
+    ulen = vlen * aspectRatio;
+    u = XMVectorScale(u, ulen);
+    v = XMVectorScale(v, vlen);
+
+    XMStoreFloat4(U, u);
+    XMStoreFloat4(V, v);
+    XMStoreFloat4(W, w);
+}
+
+void DXRFrameworkApp::UpdateCameraMatrices(float elapsedTime)
+{
+    using namespace DirectX;
+
+    XMVECTOR Eye = XMVectorSet(sinf(elapsedTime), 0.0f, 5.5f, 1.0f);
+    XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+
+    CameraParams params = {};
+    XMStoreFloat4(&params.worldEyePos, Eye);
+    calculateCameraVariables(Eye, At, Up, 45.0f, m_aspectRatio, &params.U, &params.V, &params.W);
+
+    uint8_t* pData;
+    ThrowIfFailed(mCameraConstantBuffer->Map(0, nullptr, (void**)&pData));
+    memcpy(pData, &params, sizeof(params));
+
+    mCameraConstantBuffer->Unmap(0, nullptr);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void DXRFrameworkApp::DoRaytracing()
@@ -104,6 +162,7 @@ void DXRFrameworkApp::DoRaytracing()
 
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
+    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::CameraParametersSlot, mCameraCBVGpuDescriptor);
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
     mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight());
@@ -134,9 +193,11 @@ void DXRFrameworkApp::OnUpdate()
 {
     DXSample::OnUpdate();
 
-    float elapsedTime = static_cast<float>(mTimer.GetElapsedSeconds());
+    float elapsedTime = static_cast<float>(mTimer.GetTotalSeconds());
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
+
+    UpdateCameraMatrices(elapsedTime);
 }
 
 void DXRFrameworkApp::OnRender()
@@ -192,5 +253,4 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     mOutputResource.Reset();
     CreateRaytracingOutputBuffer();
-    // UpdateCameraMatrices();
 }
