@@ -23,12 +23,12 @@ namespace DXRFramework
         void bindDescriptorHeap();
         D3D12_GPU_DESCRIPTOR_HANDLE getDescriptorGPUHandle(UINT heapIndex);
 
-        // Create a wrapped pointer for the Fallback Layer path.
-        UINT allocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
-
         // Allocate a descriptor and return its index. 
         // If the passed descriptorIndexToUse is valid, it will be used instead of allocating a new one.
-        WRAPPED_GPU_POINTER createFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements);
+        UINT allocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
+
+        // Create a wrapped pointer for the Fallback Layer path.
+        WRAPPED_GPU_POINTER createFallbackWrappedPointer(ID3D12Resource* resource);
 
     private:
         RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList);

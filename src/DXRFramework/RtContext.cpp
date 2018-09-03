@@ -30,9 +30,10 @@ namespace DXRFramework
     {
         D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
         // Allocate a heap for 3 descriptors:
-        // 1 - raytracing output texture SRV
-        // 2 - bottom and top level acceleration structure fallback wrapped pointer UAVs
-        descriptorHeapDesc.NumDescriptors = 3; 
+        // 2x bottom and top level acceleration structure fallback wrapped pointer UAVs
+        // 1x raytracing output texture SRV
+        // 1x global camera SBV
+        descriptorHeapDesc.NumDescriptors = 4;
         descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         descriptorHeapDesc.NodeMask = 0;
@@ -56,19 +57,18 @@ namespace DXRFramework
     
     RtContext::~RtContext() = default;
 
-    WRAPPED_GPU_POINTER RtContext::createFallbackWrappedPointer(ID3D12Resource* resource, UINT bufferNumElements)
+    WRAPPED_GPU_POINTER RtContext::createFallbackWrappedPointer(ID3D12Resource* resource)
     {
         D3D12_UNORDERED_ACCESS_VIEW_DESC rawBufferUavDesc = {};
         rawBufferUavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
         rawBufferUavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
         rawBufferUavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-        rawBufferUavDesc.Buffer.NumElements = bufferNumElements;
-
-        D3D12_CPU_DESCRIPTOR_HANDLE bottomLevelDescriptor;
+        rawBufferUavDesc.Buffer.NumElements = (UINT)(resource->GetDesc().Width / sizeof(UINT32));
 
         // Only compute fallback requires a valid descriptor index when creating a wrapped pointer.
         UINT descriptorHeapIndex = 0;
         if (!mFallbackDevice->UsingRaytracingDriver()) {
+            D3D12_CPU_DESCRIPTOR_HANDLE bottomLevelDescriptor;
             descriptorHeapIndex = allocateDescriptor(&bottomLevelDescriptor);
             mDevice->CreateUnorderedAccessView(resource, nullptr, &rawBufferUavDesc, bottomLevelDescriptor);
         }

@@ -320,7 +320,7 @@ void TopLevelASGenerator::Generate(
     ID3D12Resource* resultBuffer,      // Result buffer storing the acceleration structure
     ID3D12Resource* descriptorsBuffer, // Auxiliary result buffer containing the instance
                                        // descriptors, has to be in upload heap
-    std::function<WRAPPED_GPU_POINTER(ID3D12Resource*, UINT)> 
+    std::function<WRAPPED_GPU_POINTER(ID3D12Resource*)> 
         createWrappedPtrFunc,
     bool updateOnly /*= false*/,       // If true, simply refit the existing
                                        // acceleration structure
@@ -361,8 +361,7 @@ void TopLevelASGenerator::Generate(
         m_instances[i].transform); // GLM is column major, the INSTANCE_DESC is row major
     memcpy(instanceDescs[i].Transform, &m, sizeof(instanceDescs[i].Transform));
     // Get access to the bottom level
-    instanceDescs[i].AccelerationStructure = createWrappedPtrFunc(
-        m_instances[i].bottomLevelAS, static_cast<UINT>(m_resultSizeInBytes) / sizeof(UINT32));
+    instanceDescs[i].AccelerationStructure = createWrappedPtrFunc(m_instances[i].bottomLevelAS);
     // Visibility mask, always visible here - TODO: should be accessible from
     // outside
     instanceDescs[i].InstanceMask = 0xFF;
