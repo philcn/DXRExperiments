@@ -11,9 +11,8 @@ namespace DXRFramework
     }
 
     RtContext::RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList)
+        : mDevice(device), mCommandList(commandList)
     {
-        mDevice = device;
-
         // TODO: try enable experimental feature and query DXR interface
         bool isDXRDriverSupported = false;
 

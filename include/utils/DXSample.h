@@ -28,6 +28,9 @@ public:
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized) = 0;
     virtual void OnDestroy() = 0;
 
+    virtual void OnDeviceLost() {}
+    virtual void OnDeviceRestored() {}
+
     // Samples override the event handlers to handle specific messages.
     virtual void OnKeyDown(UINT8 /*key*/) {}
     virtual void OnKeyUp(UINT8 /*key*/) {}

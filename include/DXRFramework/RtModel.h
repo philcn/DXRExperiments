@@ -1,4 +1,5 @@
 #pragma once
+#include "RtContext.h"
 
 namespace DXRFramework
 {
@@ -7,12 +8,16 @@ namespace DXRFramework
     public:
         using SharedPtr = std::shared_ptr<RtModel>;
         
-        static SharedPtr create();
+        static SharedPtr create(RtContext::SharedPtr context);
         ~RtModel();
         
     private:
-        RtModel();
+        friend class RtScene;
+        RtModel(RtContext::SharedPtr context);
 
+        void build(RtContext::SharedPtr context);
+
+        ComPtr<ID3D12Resource> mVertexBuffer;
         ComPtr<ID3D12Resource> mBlasBuffer;
     };
 }

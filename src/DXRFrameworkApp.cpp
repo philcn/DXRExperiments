@@ -1,23 +1,9 @@
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
-#include "DirectXRaytracingHelper.h"
-#include "nv_helpers_dx12/DXRHelper.h"
-#include "nv_helpers_dx12/TopLevelASGenerator.h"
-#include "nv_helpers_dx12/BottomLevelASGenerator.h"
-#include "RaytracingHlslCompat.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
 
 using namespace std;
-using namespace DX;
 using namespace DXRFramework;
-
-namespace GlobalRootSignatureParams {
-    enum Value {
-        AccelerationStructureSlot = 0,
-        OutputViewSlot,
-        Count 
-    };
-}
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -28,14 +14,14 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
 
 void DXRFrameworkApp::OnInit()
 {
-    m_deviceResources = std::make_unique<DeviceResources>(
+    m_deviceResources = std::make_unique<DX::DeviceResources>(
         DXGI_FORMAT_R8G8B8A8_UNORM,
         DXGI_FORMAT_UNKNOWN,
         FrameCount,
         D3D_FEATURE_LEVEL_12_0,
         // Sample shows handling of use cases with tearing support, which is OS dependent and has been supported since TH2.
         // Since the Fallback Layer requires Fall Creator's update (RS3), we don't need to handle non-tearing cases.
-        DeviceResources::c_RequireTearingSupport,
+        DX::DeviceResources::c_RequireTearingSupport,
         m_adapterIDoverride
     );
     m_deviceResources->RegisterDeviceNotify(this);
@@ -46,11 +32,14 @@ void DXRFrameworkApp::OnInit()
     m_deviceResources->CreateDeviceResources();
     m_deviceResources->CreateWindowSizeDependentResources();
 
-    CreateDeviceDependentResources();
-    CreateWindowSizeDependentResources();
+    InitRaytracing();
+    BuildAccelerationStructures();
+
+    CreateRaytracingOutputBuffer();
+    // UpdateCameraMatrices();
 }
 
-void DXRFrameworkApp::CreateDeviceDependentResources()
+void DXRFrameworkApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
@@ -69,15 +58,23 @@ void DXRFrameworkApp::CreateDeviceDependentResources()
 
     mRtBindings = RtBindings::create(mRtContext, mRtProgram);
 
-    CreateGeometries();
-    CreateAccelerationStructures();
-    // CreateConstantBuffers();
+    RtModel::SharedPtr model = RtModel::create(mRtContext);
+
+    mRtScene = RtScene::create();
+    mRtScene->addModel(model, DirectX::XMMatrixIdentity());
 }
 
-void DXRFrameworkApp::CreateWindowSizeDependentResources()
+void DXRFrameworkApp::BuildAccelerationStructures()
 {
-    CreateRaytracingOutputBuffer();
-    // UpdateCameraMatrices();
+    auto commandList = m_deviceResources->GetCommandList();
+    auto commandAllocator = m_deviceResources->GetCommandAllocator();
+
+    commandList->Reset(commandAllocator, nullptr);
+
+    mRtScene->build(mRtContext);
+
+    m_deviceResources->ExecuteCommandList();
+    m_deviceResources->WaitForGpu();
 }
 
 void DXRFrameworkApp::CreateRaytracingOutputBuffer()
@@ -95,139 +92,6 @@ void DXRFrameworkApp::CreateRaytracingOutputBuffer()
     mOutputResourceUAVGpuDescriptor = mRtContext->getDescriptorGPUHandle(outputResourceUAVDescriptorHeapIndex);
 }
 
-void DXRFrameworkApp::ReleaseWindowSizeDependentResources()
-{
-    mOutputResource.Reset();
-}
-
-void DXRFrameworkApp::ReleaseDeviceDependentResources()
-{
-    mVertexBuffer.Reset();
-    mBlasBuffer.Reset();
-    mTlasBuffer.Reset();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void DXRFrameworkApp::CreateGeometries()
-{
-    Vertex triangleVertices[] =
-    {
-        { { 0.0f, 0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-        { { 0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
-        { { -0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
-    };
-
-    const UINT vertexBufferSize = sizeof(triangleVertices);
-
-    auto device = m_deviceResources->GetD3DDevice();
-    // Note: using upload heaps to transfer static data like vert buffers is not 
-    // recommended. Every time the GPU needs it, the upload heap will be marshalled 
-    // over. Please read up on Default Heap usage. An upload heap is used here for 
-    // code simplicity and because there are very few verts to actually transfer.
-    AllocateUploadBuffer(device, triangleVertices, sizeof(triangleVertices), &mVertexBuffer);
-}
-
-AccelerationStructureBuffers DXRFrameworkApp::CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vertexBuffers)
-{
-    nv_helpers_dx12::BottomLevelASGenerator blasGenerator;
-
-    for (const auto &vb : vertexBuffers) {
-        blasGenerator.AddVertexBuffer(vb.first.Get(), 0, vb.second, sizeof(Vertex), nullptr, 0);
-    }
-
-    UINT64 scratchSizeInBytes = 0;
-    UINT64 resultSizeInBytes = 0;
-    blasGenerator.ComputeASBufferSizes(mRtContext->getFallbackDevice(), false, &scratchSizeInBytes, &resultSizeInBytes);
-
-    auto device = m_deviceResources->GetD3DDevice();
-    AccelerationStructureBuffers buffers;
-
-    buffers.scratch = nv_helpers_dx12::CreateBuffer(
-        device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nv_helpers_dx12::kDefaultHeapProps);
-
-    D3D12_RESOURCE_STATES initialResourceState = mRtContext->getFallbackDevice()->GetAccelerationStructureResourceState();
-    buffers.accelerationStructure = nv_helpers_dx12::CreateBuffer(
-        device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-        initialResourceState, nv_helpers_dx12::kDefaultHeapProps);
-
-    auto commandList = m_deviceResources->GetCommandList();
-    blasGenerator.Generate(commandList, mRtContext->getFallbackCommandList(), buffers.scratch.Get(), buffers.accelerationStructure.Get());
-
-    return buffers;
-}
-
-AccelerationStructureBuffers DXRFrameworkApp::CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>> &instances)
-{
-    nv_helpers_dx12::TopLevelASGenerator tlasGenerator;
-
-    for (int i = 0; i < instances.size(); ++i) {
-        tlasGenerator.AddInstance(instances[i].first.Get(), instances[i].second, i, 0);
-    }
-
-    UINT64 scratchSizeInBytes = 0;
-    UINT64 resultSizeInBytes = 0;
-    UINT64 instanceDescsSize = 0;
-    tlasGenerator.ComputeASBufferSizes(mRtContext->getFallbackDevice(), true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSize);
-
-    auto device = m_deviceResources->GetD3DDevice();
-    AccelerationStructureBuffers buffers;
-    buffers.ResultDataMaxSizeInBytes = resultSizeInBytes;
-    
-    // Allocate on default heap since the build is done on GPU
-    buffers.scratch = nv_helpers_dx12::CreateBuffer(
-        device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-        D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nv_helpers_dx12::kDefaultHeapProps);
-
-    D3D12_RESOURCE_STATES initialResourceState = mRtContext->getFallbackDevice()->GetAccelerationStructureResourceState();
-    buffers.accelerationStructure = nv_helpers_dx12::CreateBuffer(
-        device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-        initialResourceState, nv_helpers_dx12::kDefaultHeapProps);
-    
-    buffers.instanceDesc = nv_helpers_dx12::CreateBuffer(
-        device, instanceDescsSize, D3D12_RESOURCE_FLAG_NONE, 
-        D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps); 
-
-    auto commandList = m_deviceResources->GetCommandList();
-    tlasGenerator.Generate(commandList, mRtContext->getFallbackCommandList(),
-        buffers.scratch.Get(), buffers.accelerationStructure.Get(), buffers.instanceDesc.Get(), 
-        [&](ID3D12Resource *resource, UINT bufferNumElements) -> WRAPPED_GPU_POINTER {
-            return mRtContext->createFallbackWrappedPointer(resource, bufferNumElements);
-    });
-
-    return buffers;
-}
-
-void DXRFrameworkApp::CreateAccelerationStructures()
-{
-    auto commandList = m_deviceResources->GetCommandList();
-    auto commandAllocator = m_deviceResources->GetCommandAllocator();
-
-    // Reset the command list for the acceleration structure construction.
-    commandList->Reset(commandAllocator, nullptr);
-
-    // Set the descriptor heaps to be used during acceleration structure build for the Fallback Layer.
-    mRtContext->bindDescriptorHeap();
-
-    std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vertexBuffers;
-    vertexBuffers.emplace_back(std::make_pair(mVertexBuffer, 3));
-
-    AccelerationStructureBuffers blas = CreateBottomLevelAS(vertexBuffers);
-
-    mInstances.emplace_back(std::make_pair(blas.accelerationStructure, XMMatrixIdentity()));
-
-    AccelerationStructureBuffers tlas = CreateTopLevelAS(mInstances);
-    mTlasWrappedPointer = mRtContext->createFallbackWrappedPointer(tlas.accelerationStructure.Get(), tlas.ResultDataMaxSizeInBytes / sizeof(UINT32));
-
-    m_deviceResources->ExecuteCommandList();
-    m_deviceResources->WaitForGpu();
-
-    // Retain the bottom level AS result buffer and release the rest of the buffers
-    mBlasBuffer = blas.accelerationStructure;
-    mTlasBuffer = tlas.accelerationStructure;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void DXRFrameworkApp::DoRaytracing()
@@ -240,7 +104,7 @@ void DXRFrameworkApp::DoRaytracing()
 
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
-    mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mTlasWrappedPointer);
+    mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
     mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight());
 }
@@ -295,6 +159,8 @@ void DXRFrameworkApp::OnRender()
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
         commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
+        // Insert rasterizeration code here
+
         m_deviceResources->Present(D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 }
@@ -313,19 +179,7 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
 void DXRFrameworkApp::OnDestroy()
 {
     m_deviceResources->WaitForGpu();
-    OnDeviceLost();
-}
-
-void DXRFrameworkApp::OnDeviceLost()
-{
-    ReleaseWindowSizeDependentResources();
-    ReleaseDeviceDependentResources();
-}
-
-void DXRFrameworkApp::OnDeviceRestored()
-{
-    CreateDeviceDependentResources();
-    CreateWindowSizeDependentResources();
+    mOutputResource.Reset();
 }
 
 void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
@@ -336,6 +190,7 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     UpdateForSizeChange(width, height);
 
-    ReleaseWindowSizeDependentResources();
-    CreateWindowSizeDependentResources();
+    mOutputResource.Reset();
+    CreateRaytracingOutputBuffer();
+    // UpdateCameraMatrices();
 }

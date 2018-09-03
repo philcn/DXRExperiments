@@ -109,4 +109,12 @@ namespace DXRFramework
 
         ID3D12RootSignature *TempCreateGlobalRootSignature();
     };
+
+    namespace GlobalRootSignatureParams {
+        enum Value {
+            AccelerationStructureSlot = 0,
+            OutputViewSlot,
+            Count 
+        };
+    }
 }

@@ -14,6 +14,7 @@ namespace DXRFramework
         ~RtContext();
 
         ID3D12Device *getDevice() const { return mDevice; }
+        ID3D12GraphicsCommandList *getCommandList() const { return mCommandList; }
         ID3D12RaytracingFallbackDevice *getFallbackDevice() const { return mFallbackDevice.Get(); }
         ID3D12RaytracingFallbackCommandList *getFallbackCommandList() const { return mFallbackCommandList.Get(); }
 
@@ -32,7 +33,9 @@ namespace DXRFramework
     private:
         RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList);
 
-        ID3D12Device* mDevice;
+        ID3D12Device *mDevice;
+        ID3D12GraphicsCommandList *mCommandList;
+
         ComPtr<ID3D12RaytracingFallbackDevice> mFallbackDevice;
         ComPtr<ID3D12RaytracingFallbackCommandList> mFallbackCommandList;
         

@@ -6,16 +6,13 @@
 #include "DXRFramework/RtProgram.h"
 #include "DXRFramework/RtState.h"
 #include "DXRFramework/RtBindings.h"
+#include "DXRFramework/RtScene.h"
 #include <vector>
 
 class DXRFrameworkApp : public DXSample
 {
 public:
     DXRFrameworkApp(UINT width, UINT height, std::wstring name);
-
-    // IDeviceNotify
-    virtual void OnDeviceLost() override;
-    virtual void OnDeviceRestored() override;
 
     // Messages
     virtual void OnInit();
@@ -34,16 +31,6 @@ private:
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    // Geometries
-    ComPtr<ID3D12Resource> mVertexBuffer;
-    std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>> mInstances;
-
-    // Acceleration structures
-    ComPtr<ID3D12Resource> mBlasBuffer;
-    ComPtr<ID3D12Resource> mTlasBuffer;
-    WRAPPED_GPU_POINTER mTlasWrappedPointer;
-
-    // Raytracing output resources
     ComPtr<ID3D12Resource> mOutputResource;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputResourceUAVGpuDescriptor;
 
@@ -53,21 +40,15 @@ private:
     DXRFramework::RtProgram::SharedPtr mRtProgram;
     DXRFramework::RtState::SharedPtr mRtState;
     DXRFramework::RtBindings::SharedPtr mRtBindings;
+    DXRFramework::RtScene::SharedPtr mRtScene;
 
     ////////////////////////////////////////////////////////////////////////////////
 
-    void CreateGeometries();
-    void CreateAccelerationStructures();
-    AccelerationStructureBuffers CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vertexBuffers);
-    AccelerationStructureBuffers CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>> &instances);
+    void InitRaytracing();
+    void BuildAccelerationStructures();
 
     void DoRaytracing();
 
     void CreateRaytracingOutputBuffer();
     void CopyRaytracingOutputToBackbuffer();
-
-    void CreateDeviceDependentResources();
-    void CreateWindowSizeDependentResources();
-    void ReleaseDeviceDependentResources();
-    void ReleaseWindowSizeDependentResources();
 };
