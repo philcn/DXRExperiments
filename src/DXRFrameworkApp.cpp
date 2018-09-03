@@ -60,7 +60,10 @@ void DXRFrameworkApp::InitRaytracing()
 
     mRtBindings = RtBindings::create(mRtContext, mRtProgram);
 
-    RtModel::SharedPtr model = RtModel::create(mRtContext);
+    // working directory is "vc2015"
+    // const char *path = "..\\assets\\models\\cornell.obj";
+    const char *path = "..\\assets\\models\\susanne.obj";
+    RtModel::SharedPtr model = RtModel::create(mRtContext, path);
 
     mRtScene = RtScene::create();
     mRtScene->addModel(model, DirectX::XMMatrixIdentity());
