@@ -168,7 +168,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\assets\shaders\Raytracing.hlsl">
+    <CustomBuild Include="..\assets\shaders\ShaderLibrary.hlsl">
       <Filter>Assets\Shaders</Filter>
     </CustomBuild>
   </ItemGroup>

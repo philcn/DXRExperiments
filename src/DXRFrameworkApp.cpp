@@ -1,23 +1,11 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
 #include "DirectXRaytracingHelper.h"
-
 #include "nv_helpers_dx12/DXRHelper.h"
-#include "nv_helpers_dx12/BottomLevelASGenerator.h"
 #include "nv_helpers_dx12/TopLevelASGenerator.h"
-
-#include "CompiledShaders/Raytracing.hlsl.h"
+#include "nv_helpers_dx12/BottomLevelASGenerator.h"
+#include "RaytracingHlslCompat.h"
+#include "CompiledShaders/ShaderLibrary.hlsl.h"
 
 using namespace std;
 using namespace DX;
@@ -69,7 +57,7 @@ void DXRFrameworkApp::CreateDeviceDependentResources()
     mRtContext = RtContext::create(device, commandList);
 
     RtProgram::Desc programDesc;
-    programDesc.addShaderLibrary(g_pRaytracing, ARRAYSIZE(g_pRaytracing), {L"RayGen", L"Miss", L"ClosestHit"});
+    programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), {L"RayGen", L"Miss", L"ClosestHit"});
     programDesc.setRayGen("RayGen");
     programDesc.addHitGroup(0, "ClosestHit", "");
     programDesc.addMiss(0, "Miss");

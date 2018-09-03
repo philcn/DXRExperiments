@@ -1,28 +1,11 @@
-//*********************************************************
-//
-// Copyright (c) Microsoft. All rights reserved.
-// This code is licensed under the MIT License (MIT).
-// THIS CODE IS PROVIDED *AS IS* WITHOUT WARRANTY OF
-// ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING ANY
-// IMPLIED WARRANTIES OF FITNESS FOR A PARTICULAR
-// PURPOSE, MERCHANTABILITY, OR NON-INFRINGEMENT.
-//
-//*********************************************************
-
 #pragma once
 
 #include "DXSample.h"
-#include "DirectXRaytracingHelper.h"
-#include "RaytracingHlslCompat.h"
-
-#include "dxcapi.h"
-#include "dxcapi.use.h"
-
+#include "DirectXRaytracingHelper.h" // for AccelerationStructureBuffers
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtProgram.h"
 #include "DXRFramework/RtState.h"
 #include "DXRFramework/RtBindings.h"
-
 #include <vector>
 
 class DXRFrameworkApp : public DXSample
@@ -74,10 +57,9 @@ private:
     ////////////////////////////////////////////////////////////////////////////////
 
     void CreateGeometries();
-
+    void CreateAccelerationStructures();
     AccelerationStructureBuffers CreateBottomLevelAS(std::vector<std::pair<ComPtr<ID3D12Resource>, uint32_t>> vertexBuffers);
     AccelerationStructureBuffers CreateTopLevelAS(const std::vector<std::pair<ComPtr<ID3D12Resource>, DirectX::XMMATRIX>> &instances);
-    void CreateAccelerationStructures();
 
     void DoRaytracing();
 
