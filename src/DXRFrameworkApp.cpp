@@ -165,7 +165,8 @@ void DXRFrameworkApp::DoRaytracing()
 
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
-    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::CameraParametersSlot, mCameraCBVGpuDescriptor);
+    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::CameraParameterSlot, mCameraCBVGpuDescriptor);
+    commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::VertexBufferSlot, mRtScene->getModel(0)->getVertexBuffer()->GetGPUVirtualAddress());
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
     mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight());

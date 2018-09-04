@@ -152,15 +152,17 @@ namespace DXRFramework
         #if 1
             nv_helpers_dx12::RootSignatureGenerator rootSigGenerator;
             // slot 0, GlobalRootSignatureParams::AccelerationStructureSlot
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0);
+            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0); // t0
             // slot 1, GlobalRootSignatureParams::OutputViewSlot
             rootSigGenerator.AddHeapRangesParameter({
                 {0 /* u0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0 /* heap offset */},
             });
-            // slot 2, GlobalRootSignatureParams::CameraParametersSlot
+            // slot 2, GlobalRootSignatureParams::CameraParameterSlot
             rootSigGenerator.AddHeapRangesParameter({
                 {0 /* b0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0 /* heap offset */}
             });
+            // slot 3, GlobalRootSignatureParams::VertexBufferSlot
+            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1); // t1
             return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
         #else
             CD3DX12_DESCRIPTOR_RANGE ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.

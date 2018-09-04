@@ -114,7 +114,8 @@ namespace DXRFramework
         enum Value {
             AccelerationStructureSlot = 0,
             OutputViewSlot,
-            CameraParametersSlot,
+            CameraParameterSlot,
+            VertexBufferSlot,
             Count 
         };
     }

@@ -11,6 +11,8 @@ namespace DXRFramework
         static SharedPtr create(RtContext::SharedPtr context, const std::string &filePath);
         ~RtModel();
         
+        ID3D12Resource *getVertexBuffer() const { return mVertexBuffer.Get(); }
+
     private:
         friend class RtScene;
         RtModel(RtContext::SharedPtr context, const std::string &filePath);

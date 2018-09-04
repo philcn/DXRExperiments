@@ -27,6 +27,8 @@ namespace DXRFramework
         };
 
         void addModel(RtModel::SharedPtr model, DirectX::XMMATRIX transform) { mInstances.emplace_back(Node::create(model, transform)); }
+        RtModel::SharedPtr getModel(UINT index) const { return mInstances[index]->mModel; }
+        UINT getNumInstances() const { return mInstances.size(); }
 
         ID3D12Resource *getTlasResource() const { return mTlasBuffer.Get(); }
         WRAPPED_GPU_POINTER getTlasWrappedPtr() const { return mTlasWrappedPointer; }
