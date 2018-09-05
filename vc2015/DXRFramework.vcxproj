@@ -132,6 +132,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\DXRFramework\RtBindings.h" />
     <ClInclude Include="..\include\DXRFramework\RtContext.h" />
     <ClInclude Include="..\include\DXRFramework\RtModel.h" />
+    <ClInclude Include="..\include\DXRFramework\RtParams.h" />
     <ClInclude Include="..\include\DXRFramework\RtProgram.h" />
     <ClInclude Include="..\include\DXRFramework\RtScene.h" />
     <ClInclude Include="..\include\DXRFramework\RtShader.h" />
@@ -220,6 +221,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\libs\assimp\include\assimp\version.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\Vertex.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\XMLTools.h" />
+    <ClCompile Include="..\src\DXRFramework\RtParams.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp" />

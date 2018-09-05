@@ -335,6 +335,9 @@
     <ClInclude Include="..\libs\assimp\include\assimp\anim.h">
       <Filter>Libs\assimp\include\assimp</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\DXRFramework\RtParams.h">
+      <Filter>Header Files\DXRFramework</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -390,6 +393,9 @@
     </ClCompile>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DXRFramework\RtParams.cpp">
+      <Filter>Source Files\DXRFramework</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

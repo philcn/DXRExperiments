@@ -2,6 +2,7 @@
 #include "RtContext.h"
 #include "RtProgram.h"
 #include "RtState.h"
+#include "RtParams.h"
 
 namespace DXRFramework
 {
@@ -23,12 +24,17 @@ namespace DXRFramework
         uint32_t getHitProgramsCount() const { return mHitProgCount; }
         uint32_t getMissProgramsCount() const { return mMissProgCount; }
 
+        const RtParams::SharedPtr& getHitVars(uint32_t rayID) { return mHitParams[rayID]; }
+        const RtParams::SharedPtr& getRayGenVars() { return mRayGenParams; }
+        const RtParams::SharedPtr& getMissVars(uint32_t rayID) { return mMissParams[rayID]; }
+        const RtParams::SharedPtr& getGlobalVars() { return mGlobalParams; }
+
     private:
         RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program); 
         bool init(RtContext::SharedPtr context);
 
-        void applyRtProgramVars(uint8_t *record, RtShader::SharedPtr shader, ID3D12RaytracingFallbackStateObject *rtso);
-        void applyRtProgramVars(uint8_t *record, const RtProgram::HitGroup &hitGroup, ID3D12RaytracingFallbackStateObject *rtso);
+        void applyRtProgramVars(uint8_t *record, RtShader::SharedPtr shader, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params);
+        void applyRtProgramVars(uint8_t *record, const RtProgram::HitGroup &hitGroup, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params);
 
         RtProgram::SharedPtr mProgram;
 
@@ -46,10 +52,11 @@ namespace DXRFramework
         
         uint8_t *getRayGenRecordPtr();
         uint8_t *getMissRecordPtr(uint32_t missId);
-        uint8_t *getHitRecordPtr(uint32_t hitId, uint32_t meshId);
-        
-        // Global vars
+        uint8_t *getHitRecordPtr(uint32_t hitId, uint32_t meshId);        
 
-        // Hit, miss, raygen vars
+        RtParams::SharedPtr mGlobalParams;
+        RtParams::SharedPtr mRayGenParams;
+        std::vector<RtParams::SharedPtr> mHitParams;
+        std::vector<RtParams::SharedPtr> mMissParams;
     };
 }

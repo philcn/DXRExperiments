@@ -28,7 +28,9 @@ namespace DXRFramework
         UINT allocateDescriptor(D3D12_CPU_DESCRIPTOR_HANDLE* cpuDescriptor, UINT descriptorIndexToUse = UINT_MAX);
 
         // Create a wrapped pointer for the Fallback Layer path.
-        WRAPPED_GPU_POINTER createFallbackWrappedPointer(ID3D12Resource* resource);
+        WRAPPED_GPU_POINTER createUAVFallbackWrappedPointer(ID3D12Resource* resource);
+
+        WRAPPED_GPU_POINTER createSRVFallbackWrappedPointer(ID3D12Resource* resource, bool rawBuffer = true, UINT structureStride = 4);
 
     private:
         RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList);

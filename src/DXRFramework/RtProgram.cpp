@@ -2,6 +2,9 @@
 #include "RtProgram.h"
 #include "nv_helpers_dx12/RootSignatureGenerator.h"
 
+extern bool gVertexBufferInLocalRootSignature;
+extern bool gVertexBufferUseRootTableInsteadOfRootView;
+
 namespace DXRFramework
 {
     RtProgram::ShaderLibrary::ShaderLibrary(IDxcBlob* dxil, const std::vector<std::wstring>& symbolExports)
@@ -154,15 +157,18 @@ namespace DXRFramework
             // slot 0, GlobalRootSignatureParams::AccelerationStructureSlot
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0); // t0
             // slot 1, GlobalRootSignatureParams::OutputViewSlot
-            rootSigGenerator.AddHeapRangesParameter({
-                {0 /* u0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0 /* heap offset */},
-            });
+            rootSigGenerator.AddHeapRangesParameter({{0 /* u0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0}});
             // slot 2, GlobalRootSignatureParams::CameraParameterSlot
-            rootSigGenerator.AddHeapRangesParameter({
-                {0 /* b0 */, 1 /* 1 descriptor */, 0 /* space 0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0 /* heap offset */}
-            });
+            rootSigGenerator.AddHeapRangesParameter({{0 /* b0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0}});
             // slot 3, GlobalRootSignatureParams::VertexBufferSlot
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1); // t1
+            if (!gVertexBufferInLocalRootSignature) {
+                if (gVertexBufferUseRootTableInsteadOfRootView) {
+                    rootSigGenerator.AddHeapRangesParameter({{0 /* t0 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+                } else {
+                    rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 1); // t0 space1
+                }
+            }
+
             return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
         #else
             CD3DX12_DESCRIPTOR_RANGE ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.

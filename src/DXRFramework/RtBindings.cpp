@@ -25,25 +25,30 @@ namespace DXRFramework
         mFirstHitVarEntry = kFirstMissRecordIndex + mMissProgCount;
         uint32_t recordCountPerHit = 1; // mScene->getGeometryCount(mHitProgCount);
 
-        // TODO: create vars
-        // Find the max root-signature size and create the programVars
-        // mMissVars.resize(mMissProgCount);
-        // mHitVars.resize(mHitProgCount);
-        // mpGlobalVars = GraphicsVars::create(mProgram->getGlobalReflector(), true, mProgram->getGlobalRootSignature());
-        uint32_t maxRootSigSize = 0;
-        /*
-        getSigSizeAndCreateVars(mProgram->getRayGenProgram(), maxRootSigSize, &mRayGenVars, 1);
+        mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
 
+        // Find the max root-signature size, create params with root signatures and reserve space
+        uint32_t maxRootSigSize = 32; // TEMP: only 2 root parameter
+
+        mRayGenParams = RtParams::create(); // mProgram->getRayGenProgram();
+        mRayGenParams->allocateStorage(maxRootSigSize);
+        // update maxRootSigSize
+
+        mHitParams.resize(mHitProgCount);
         for (uint32_t i = 0 ; i < mHitProgCount; i++) {
-            mHitVars[i].resize(recordCountPerHit);
-            getSigSizeAndCreateVars(mProgram->getHitProgram(i), maxRootSigSize, mHitVars[i].data(), recordCountPerHit);
+            mHitParams[i] = RtParams::create(); // mProgram->getHitProgram(i);
+            mHitParams[i]->allocateStorage(maxRootSigSize);
+            // update maxRootSigSize
         }
 
-        for (uint32_t i = 0; i < mMissProgCount; i++) {
-            getSigSizeAndCreateVars(mProgram->getMissProgram(i), maxRootSigSize, &mMissVars[i], 1);
+        mMissParams.resize(mMissProgCount);
+        for (uint32_t i = 0 ; i < mHitProgCount; i++) {
+            mMissParams[i] = RtParams::create(); // mProgram->getMissProgram(i);
+            mMissParams[i]->allocateStorage(maxRootSigSize);
+            // update maxRootSigSize
         }
-        */
 
+        // Allocate shader table
         mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
 
         uint32_t hitEntries = recordCountPerHit * mHitProgCount;
@@ -62,7 +67,7 @@ namespace DXRFramework
         return true;
     }
 
-    void RtBindings::applyRtProgramVars(uint8_t *record, RtShader::SharedPtr shader, ID3D12RaytracingFallbackStateObject *rtso)
+    void RtBindings::applyRtProgramVars(uint8_t *record, RtShader::SharedPtr shader, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params)
     {
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         std::wstring entryPoint = converter.from_bytes(shader->getEntryPoint());
@@ -71,12 +76,13 @@ namespace DXRFramework
             throw std::logic_error("Unknown shader identifier used in the SBT: " + shader->getEntryPoint());
         }
         memcpy(record, id, mProgramIdentifierSize);
-        record += mProgramIdentifierSize;
-        // TODO:
-        // vars->setRootParams(shader->getLocalRootSignature(), record);
+        record += ROUND_UP(mProgramIdentifierSize, sizeof(UINT64));
+//        record += mProgramIdentifierSize;
+
+        params->applyRootParams(shader, record);
     }
     
-    void RtBindings::applyRtProgramVars(uint8_t *record, const RtProgram::HitGroup &hitGroup, ID3D12RaytracingFallbackStateObject *rtso)
+    void RtBindings::applyRtProgramVars(uint8_t *record, const RtProgram::HitGroup &hitGroup, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params)
     {
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         std::wstring entryPoint = converter.from_bytes(hitGroup.mExportName);
@@ -85,9 +91,10 @@ namespace DXRFramework
             throw std::logic_error("Unknown shader identifier used in the SBT: " + hitGroup.mExportName);
         }
         memcpy(record, id, mProgramIdentifierSize);
-        record += mProgramIdentifierSize;
-        // TODO:
-        // vars->setRootParams(shader->getLocalRootSignature(), record);
+        record += ROUND_UP(mProgramIdentifierSize, sizeof(UINT64));
+//        record += mProgramIdentifierSize;
+
+        params->applyRootParams(hitGroup, record);
     }
     
     void RtBindings::apply(RtContext::SharedPtr context, RtState::SharedPtr state)
@@ -95,20 +102,20 @@ namespace DXRFramework
         auto rtso = state->getFallbackRtso();
 
         uint8_t *rayGenRecord = getRayGenRecordPtr();
-        applyRtProgramVars(rayGenRecord, mProgram->getRayGenProgram(), rtso /*, mRayGenVars */);
+        applyRtProgramVars(rayGenRecord, mProgram->getRayGenProgram(), rtso, mRayGenParams);
 
         uint32_t hitCount = mProgram->getHitProgramCount();
         for (uint32_t h = 0; h < hitCount; h++) {
             int geometryCount = 1; // mScene->getGeometryCount(hitCount);
             for (uint32_t i = 0; i < geometryCount; i++) {
                 uint8_t *pHitRecord = getHitRecordPtr(h, i);
-                applyRtProgramVars(pHitRecord, mProgram->getHitProgram(h), rtso /*, mHitVars[h][i] */);
+                applyRtProgramVars(pHitRecord, mProgram->getHitProgram(h), rtso, mHitParams[h]); // mHitVars[h][i]
             }
         }
 
         for (uint32_t m = 0; m < mProgram->getMissProgramCount(); m++) {
             uint8_t *pMissRecord = getMissRecordPtr(m);
-            applyRtProgramVars(pMissRecord, mProgram->getMissProgram(m), rtso /*, mMissVars[m] */);
+            applyRtProgramVars(pMissRecord, mProgram->getMissProgram(m), rtso, mMissParams[m]);
         }
 
         // Update shader table
