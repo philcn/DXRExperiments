@@ -155,7 +155,6 @@ void DXRFrameworkApp::UpdateCameraMatrices(float elapsedTime)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool gVertexBufferInLocalRootSignature = true;
 bool gVertexBufferUseRootTableInsteadOfRootView = false;
 
 void DXRFrameworkApp::DoRaytracing()
@@ -166,37 +165,15 @@ void DXRFrameworkApp::DoRaytracing()
 
     // TEST bind vertex buffer
     {
-        static D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
-        if (gVertexBufferUseRootTableInsteadOfRootView && !srvGpuHandle.ptr) {
-            auto device = m_deviceResources->GetD3DDevice();
-            D3D12_CPU_DESCRIPTOR_HANDLE descriptorHandle;
-            UINT heapIndex = mRtContext->allocateDescriptor(&descriptorHandle);
-            D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
-            srvDesc.Format = DXGI_FORMAT_UNKNOWN;
-            srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-            srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
-            srvDesc.Buffer.StructureByteStride = sizeof(Vertex);
-            srvDesc.Buffer.NumElements = mRtScene->getModel(0)->getVertexBuffer()->GetDesc().Width / sizeof(Vertex);
-            device->CreateShaderResourceView(mRtScene->getModel(0)->getVertexBuffer(), &srvDesc, descriptorHandle);
-            srvGpuHandle = mRtContext->getDescriptorGPUHandle(heapIndex);
-        }
+        WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(0)->getVertexBufferWrappedPtr();
 
-        if (gVertexBufferInLocalRootSignature) {
-            if (gVertexBufferUseRootTableInsteadOfRootView) {
-                mRtBindings->getHitVars(0)->appendHeapRanges(srvGpuHandle.ptr);
-                mRtBindings->getMissVars(0)->appendHeapRanges(srvGpuHandle.ptr);
-            } else {
-                static WRAPPED_GPU_POINTER srvHandle = mRtContext->createSRVFallbackWrappedPointer(mRtScene->getModel(0)->getVertexBuffer(), false, sizeof(Vertex));
-                mRtBindings->getHitVars(0)->appendSRV(srvHandle);
-                mRtBindings->getMissVars(0)->appendSRV(srvHandle);
-            }
+        if (gVertexBufferUseRootTableInsteadOfRootView) {
+            D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = mRtContext->getDescriptorGPUHandle(srvWrappedPtr.EmulatedGpuPtr.DescriptorHeapIndex);
+            mRtBindings->getHitVars(0)->appendHeapRanges(srvGpuHandle.ptr);
+            mRtBindings->getMissVars(0)->appendHeapRanges(srvGpuHandle.ptr);
         } else {
-            if (gVertexBufferUseRootTableInsteadOfRootView) {
-                commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::VertexBufferSlot, srvGpuHandle);
-            } else {
-                commandList->SetComputeRootShaderResourceView(GlobalRootSignatureParams::VertexBufferSlot, mRtScene->getModel(0)->getVertexBuffer()->GetGPUVirtualAddress());
-            }
+            mRtBindings->getHitVars(0)->appendSRV(srvWrappedPtr);
+            mRtBindings->getMissVars(0)->appendSRV(srvWrappedPtr);
         }
     }
 

@@ -12,6 +12,7 @@ namespace DXRFramework
         ~RtModel();
         
         ID3D12Resource *getVertexBuffer() const { return mVertexBuffer.Get(); }
+        WRAPPED_GPU_POINTER getVertexBufferWrappedPtr() const { return mVertexBufferWrappedPtr; }
 
     private:
         friend class RtScene;
@@ -22,5 +23,7 @@ namespace DXRFramework
         UINT mNumVertices;
         ComPtr<ID3D12Resource> mVertexBuffer;
         ComPtr<ID3D12Resource> mBlasBuffer;
+
+        WRAPPED_GPU_POINTER mVertexBufferWrappedPtr;
     };
 }

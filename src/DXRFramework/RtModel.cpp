@@ -81,5 +81,7 @@ namespace DXRFramework
             initialResourceState, nv_helpers_dx12::kDefaultHeapProps);
 
         blasGenerator.Generate(commandList, fallbackCommandList, scratch.Get(), mBlasBuffer.Get());
+
+        mVertexBufferWrappedPtr = context->createSRVFallbackWrappedPointer(mVertexBuffer.Get(), false, sizeof(Vertex));
     }
 }

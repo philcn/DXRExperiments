@@ -2,7 +2,6 @@
 #include "RtProgram.h"
 #include "nv_helpers_dx12/RootSignatureGenerator.h"
 
-extern bool gVertexBufferInLocalRootSignature;
 extern bool gVertexBufferUseRootTableInsteadOfRootView;
 
 namespace DXRFramework
@@ -160,14 +159,6 @@ namespace DXRFramework
             rootSigGenerator.AddHeapRangesParameter({{0 /* u0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0}});
             // slot 2, GlobalRootSignatureParams::CameraParameterSlot
             rootSigGenerator.AddHeapRangesParameter({{0 /* b0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0}});
-            // slot 3, GlobalRootSignatureParams::VertexBufferSlot
-            if (!gVertexBufferInLocalRootSignature) {
-                if (gVertexBufferUseRootTableInsteadOfRootView) {
-                    rootSigGenerator.AddHeapRangesParameter({{0 /* t0 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
-                } else {
-                    rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 1); // t0 space1
-                }
-            }
 
             return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
         #else

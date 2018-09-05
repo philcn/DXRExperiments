@@ -115,7 +115,6 @@ namespace DXRFramework
             AccelerationStructureSlot = 0,
             OutputViewSlot,
             CameraParameterSlot,
-            VertexBufferSlot,
             Count 
         };
     }
