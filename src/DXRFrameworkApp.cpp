@@ -163,25 +163,22 @@ void DXRFrameworkApp::DoRaytracing()
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     mRtContext->bindDescriptorHeap();
 
-    // TEST bind vertex buffer
+    // TEST bind 32-bit constant to miss shader
+    {
+        int32_t constant0 = 16;
+        mRtBindings->getMissVars(0)->append32BitConstants(&constant0, 1);
+    }
+
+    // TEST bind vertex buffer to hit group
     {
         WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(0)->getVertexBufferWrappedPtr();
 
         if (gVertexBufferUseRootTableInsteadOfRootView) {
             D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = mRtContext->getDescriptorGPUHandle(srvWrappedPtr.EmulatedGpuPtr.DescriptorHeapIndex);
             mRtBindings->getHitVars(0)->appendHeapRanges(srvGpuHandle.ptr);
-            mRtBindings->getMissVars(0)->appendHeapRanges(srvGpuHandle.ptr);
         } else {
-            mRtBindings->getHitVars(0)->appendSRV(srvWrappedPtr);
-            mRtBindings->getMissVars(0)->appendSRV(srvWrappedPtr);
+            mRtBindings->getHitVars(0)->appendDescriptor(srvWrappedPtr);
         }
-    }
-
-    // TEST bind 32-bit constant
-    {
-        int32_t constant0 = 16;
-        mRtBindings->getMissVars(0)->append32BitConstants(&constant0, 1);
-        mRtBindings->getHitVars(0)->append32BitConstants(&constant0, 1);
     }
 
     mRtBindings->apply(mRtContext, mRtState);

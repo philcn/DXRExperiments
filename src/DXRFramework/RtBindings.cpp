@@ -25,31 +25,32 @@ namespace DXRFramework
         mFirstHitVarEntry = kFirstMissRecordIndex + mMissProgCount;
         uint32_t recordCountPerHit = 1; // mScene->getGeometryCount(mHitProgCount);
 
+        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
+
         mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
 
         // Find the max root-signature size, create params with root signatures and reserve space
-        uint32_t maxRootSigSize = 32; // TEMP: only 2 root parameter
+        uint32_t maxRootSigSize = 4 /* padding */ + 8 * 2; // TEMP: 2 DWORD space
 
-        mRayGenParams = RtParams::create(); // mProgram->getRayGenProgram();
+        mRayGenParams = RtParams::create(mProgramIdentifierSize); // mProgram->getRayGenProgram();
         mRayGenParams->allocateStorage(maxRootSigSize);
         // update maxRootSigSize
 
         mHitParams.resize(mHitProgCount);
         for (uint32_t i = 0 ; i < mHitProgCount; i++) {
-            mHitParams[i] = RtParams::create(); // mProgram->getHitProgram(i);
+            mHitParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getHitProgram(i);
             mHitParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
         }
 
         mMissParams.resize(mMissProgCount);
         for (uint32_t i = 0 ; i < mHitProgCount; i++) {
-            mMissParams[i] = RtParams::create(); // mProgram->getMissProgram(i);
+            mMissParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getMissProgram(i);
             mMissParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
         }
 
         // Allocate shader table
-        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
 
         uint32_t hitEntries = recordCountPerHit * mHitProgCount;
         uint32_t numEntries = mMissProgCount + hitEntries + 1; // 1 is for the ray-gen
@@ -76,8 +77,7 @@ namespace DXRFramework
             throw std::logic_error("Unknown shader identifier used in the SBT: " + shader->getEntryPoint());
         }
         memcpy(record, id, mProgramIdentifierSize);
-        record += ROUND_UP(mProgramIdentifierSize, sizeof(UINT64));
-//        record += mProgramIdentifierSize;
+        record += mProgramIdentifierSize;
 
         params->applyRootParams(shader, record);
     }
@@ -91,8 +91,7 @@ namespace DXRFramework
             throw std::logic_error("Unknown shader identifier used in the SBT: " + hitGroup.mExportName);
         }
         memcpy(record, id, mProgramIdentifierSize);
-        record += ROUND_UP(mProgramIdentifierSize, sizeof(UINT64));
-//        record += mProgramIdentifierSize;
+        record += mProgramIdentifierSize;
 
         params->applyRootParams(hitGroup, record);
     }
