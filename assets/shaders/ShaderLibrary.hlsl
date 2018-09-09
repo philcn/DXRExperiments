@@ -27,22 +27,30 @@ void RayGen()
     float2 dims = float2(DispatchRaysDimensions().xy);
     float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
 
+    // +---+---+---+---+
+    // |   | * |   |   | -0.125, -0.375
+    // +---+---+---+---+
+    // |   |   |   | * |  0.375, -0.125
+    // +---+---+---+---+
+    // | * |   |   |   | -0.375,  0.125
+    // +---+---+---+---+
+    // |   |   | * |   |  0.125,  0.375
+    // +---+---+---+---+
     int numAASamples = 4;
-    float3 averageColor = float3(0.0f, 0.0f, 0.0f);
-
     const float2 jitters[4] = 
     {
-        { -1.0, -1.0 },
-        { -1.0,  1.0 },
-        {  1.0,  1.0 },
-        {  1.0, -1.0 }    
+        { -0.125, -0.375 },
+        {  0.375, -0.125 },
+        { -0.375,  0.125 },
+        {  0.125,  0.375 }    
     };
  
+    float3 averageColor = float3(0.0f, 0.0f, 0.0f);
     for (int i = 0; i < numAASamples; ++i) {
         HitInfo payload;
         payload.colorAndDistance = float4(0, 0, 0, 0);
 
-        float2 jitter = jitters[i] / dims;
+        float2 jitter = jitters[i] * 2.0f / dims;
 
         RayDesc ray;
         ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
