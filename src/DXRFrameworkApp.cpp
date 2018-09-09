@@ -58,15 +58,14 @@ void DXRFrameworkApp::InitRaytracing()
     mRtState->setProgram(mRtProgram);
     mRtState->setMaxTraceRecursionDepth(1);
 
-    mRtBindings = RtBindings::create(mRtContext, mRtProgram);
-
-    // working directory is "vc2015"
-    const char *path = "..\\assets\\models\\cornell.obj";
-    // const char *path = "..\\assets\\models\\susanne.obj";
-    RtModel::SharedPtr model = RtModel::create(mRtContext, path);
-
     mRtScene = RtScene::create();
-    mRtScene->addModel(model, DirectX::XMMatrixIdentity());
+    // working directory is "vc2015"
+    mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\cornell.obj"), DirectX::XMMatrixIdentity());
+
+    auto mat = DirectX::XMMatrixScaling(0.3f, 0.3f, 0.3f) * DirectX::XMMatrixTranslation(0.52f, -0.23f, 0.3f);
+    mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\susanne.obj"), mat);
+
+    mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
 }
 
 void DXRFrameworkApp::BuildAccelerationStructures()
@@ -138,7 +137,7 @@ void DXRFrameworkApp::UpdateCameraMatrices(float elapsedTime)
 {
     using namespace DirectX;
 
-    XMVECTOR Eye = XMVectorSet(sinf(elapsedTime), 0.0f, 5.5f, 1.0f);
+    XMVECTOR Eye = XMVectorSet(sinf(elapsedTime), 0.0f, 3.5f, 1.0f);
     XMVECTOR At = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
     XMVECTOR Up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
@@ -155,29 +154,19 @@ void DXRFrameworkApp::UpdateCameraMatrices(float elapsedTime)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool gVertexBufferUseRootTableInsteadOfRootView = false;
-
 void DXRFrameworkApp::DoRaytracing()
 {
     auto commandList = m_deviceResources->GetCommandList();
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     mRtContext->bindDescriptorHeap();
 
-    // TEST bind 32-bit constant to miss shader
     {
         int32_t constant0 = 16;
         mRtBindings->getMissVars(0)->append32BitConstants(&constant0, 1);
-    }
 
-    // TEST bind vertex buffer to hit group
-    {
-        WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(0)->getVertexBufferWrappedPtr();
-
-        if (gVertexBufferUseRootTableInsteadOfRootView) {
-            D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle = mRtContext->getDescriptorGPUHandle(srvWrappedPtr.EmulatedGpuPtr.DescriptorHeapIndex);
-            mRtBindings->getHitVars(0)->appendHeapRanges(srvGpuHandle.ptr);
-        } else {
-            mRtBindings->getHitVars(0)->appendDescriptor(srvWrappedPtr);
+        for (int i = 0; i < 2; ++i) {
+            WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(i)->getVertexBufferWrappedPtr();
+            mRtBindings->getHitVars(0, i)->appendDescriptor(srvWrappedPtr);
         }
     }
 

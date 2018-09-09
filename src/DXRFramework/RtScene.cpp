@@ -27,7 +27,7 @@ namespace DXRFramework
 
         for (int i = 0; i < mInstances.size(); ++i) {
             mInstances[i]->mModel->build(context);
-            tlasGenerator.AddInstance(mInstances[i]->mModel->mBlasBuffer.Get(), mInstances[i]->mTransform, i, 0);
+            tlasGenerator.AddInstance(mInstances[i]->mModel->mBlasBuffer.Get(), mInstances[i]->mTransform, i, i);
         }
 
         UINT64 scratchSizeInBytes = 0;

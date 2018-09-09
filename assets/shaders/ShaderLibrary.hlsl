@@ -23,7 +23,7 @@ cbuffer LocalData : register(b0, space1)
 [shader("raygeneration")] 
 void RayGen() 
 {
-    uint2 launchIndex = DispatchRaysIndex();
+    uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
     float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
 
@@ -45,8 +45,8 @@ void RayGen()
         float2 jitter = jitters[i] / dims;
 
         RayDesc ray;
-        ray.Origin = cameraParams.worldEyePos + float3(jitter.x, jitter.y, 0.0f);
-        ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W);
+        ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
+        ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W).xyz;
         ray.TMin = 0;
         ray.TMax = 100000;
 
@@ -57,6 +57,30 @@ void RayGen()
     averageColor /= numAASamples;
 
     gOutput[launchIndex] = float4(pow(averageColor, 1.0f / 2.2f), 1.0f);
+}
+
+void interpolateHitPointData(float2 bary, out float3 hitPosition, out float3 hitNormal)
+{
+    uint vertId = 3 * PrimitiveIndex();
+    float3 barycentrics = float3(1.f - bary.x - bary.y, bary.x, bary.y);
+
+    /*
+        hitPosition = vertexBuffer[vertId + 0].position * barycentrics.x +
+                      vertexBuffer[vertId + 1].position * barycentrics.y +
+                      vertexBuffer[vertId + 2].position * barycentrics.z;
+    */
+
+    const uint strideInFloat3s = 2;
+    const uint positionOffsetInFloat3s = 0;
+    const uint normalOffsetInFloat3s = 1;
+
+    hitPosition = vertexData.Load((vertId + 0) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.x +
+                  vertexData.Load((vertId + 1) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.y +
+                  vertexData.Load((vertId + 2) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.z;
+ 
+    hitNormal = vertexData.Load((vertId + 0) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.x +
+                vertexData.Load((vertId + 1) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.y +
+                vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
 }
 
 float3 shade(float3 position, float3 normal)
@@ -76,30 +100,8 @@ float3 shade(float3 position, float3 normal)
 [shader("closesthit")] 
 void ClosestHit(inout HitInfo payload, Attributes attrib) 
 {
-    uint vertId = 3 * PrimitiveIndex();
-    float3 barycentrics = float3(1.f - attrib.bary.x - attrib.bary.y, attrib.bary.x, attrib.bary.y);
-
-/*
-    float3 hitPosition = vertexBuffer[vertId + 0].position * barycentrics.x +
-                         vertexBuffer[vertId + 1].position * barycentrics.y +
-                         vertexBuffer[vertId + 2].position * barycentrics.z;
- 
-    float3 hitNormal = vertexBuffer[vertId + 0].normal * barycentrics.x +
-                       vertexBuffer[vertId + 1].normal * barycentrics.y +
-                       vertexBuffer[vertId + 2].normal * barycentrics.z;
-*/
-
-    const uint strideInFloat3s = 2;
-    const uint positionOffsetInFloat3s = 0;
-    const uint normalOffsetInFloat3s = 1;
-
-    float3 hitPosition = vertexData.Load((vertId + 0) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.x +
-                         vertexData.Load((vertId + 1) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.y +
-                         vertexData.Load((vertId + 2) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.z;
- 
-    float3 hitNormal = vertexData.Load((vertId + 0) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.x +
-                       vertexData.Load((vertId + 1) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.y +
-                       vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
+    float3 hitPosition, hitNormal;
+    interpolateHitPointData(attrib.bary, hitPosition, hitNormal);
 
     float3 color = shade(hitPosition, hitNormal);
 
@@ -109,7 +111,7 @@ void ClosestHit(inout HitInfo payload, Attributes attrib)
 [shader("miss")]
 void Miss(inout HitInfo payload : SV_RayPayload)
 {
-    uint2 launchIndex = DispatchRaysIndex();
+    uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
 
     float ramp = launchIndex.y / dims.y;

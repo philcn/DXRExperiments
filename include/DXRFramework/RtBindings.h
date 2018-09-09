@@ -1,8 +1,9 @@
 #pragma once
 #include "RtContext.h"
 #include "RtProgram.h"
-#include "RtState.h"
 #include "RtParams.h"
+#include "RtState.h"
+#include "RtScene.h"
 
 namespace DXRFramework
 {
@@ -11,7 +12,7 @@ namespace DXRFramework
     public:
         using SharedPtr = std::shared_ptr<RtBindings>;
 
-        static SharedPtr create(RtContext::SharedPtr context, RtProgram::SharedPtr program);
+        static SharedPtr create(RtContext::SharedPtr context, RtProgram::SharedPtr program, RtScene::SharedPtr scene);
         ~RtBindings();
         
         void apply(RtContext::SharedPtr context, RtState::SharedPtr state);
@@ -24,19 +25,20 @@ namespace DXRFramework
         uint32_t getHitProgramsCount() const { return mHitProgCount; }
         uint32_t getMissProgramsCount() const { return mMissProgCount; }
 
-        const RtParams::SharedPtr& getHitVars(uint32_t rayID) { return mHitParams[rayID]; }
+        const RtParams::SharedPtr& getHitVars(uint32_t rayID, uint32_t meshID) { return mHitParams[rayID][meshID]; }
         const RtParams::SharedPtr& getRayGenVars() { return mRayGenParams; }
         const RtParams::SharedPtr& getMissVars(uint32_t rayID) { return mMissParams[rayID]; }
         const RtParams::SharedPtr& getGlobalVars() { return mGlobalParams; }
 
     private:
-        RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program); 
+        RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program, RtScene::SharedPtr scene); 
         bool init(RtContext::SharedPtr context);
 
         void applyRtProgramVars(uint8_t *record, RtShader::SharedPtr shader, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params);
         void applyRtProgramVars(uint8_t *record, const RtProgram::HitGroup &hitGroup, ID3D12RaytracingFallbackStateObject *rtso, RtParams::SharedPtr params);
 
         RtProgram::SharedPtr mProgram;
+        RtScene::SharedPtr mScene;
 
         ComPtr<ID3D12Resource> mShaderTable;
         std::vector<uint8_t> mShaderTableData;
@@ -56,7 +58,7 @@ namespace DXRFramework
 
         RtParams::SharedPtr mGlobalParams;
         RtParams::SharedPtr mRayGenParams;
-        std::vector<RtParams::SharedPtr> mHitParams;
+        std::vector<std::vector<RtParams::SharedPtr>> mHitParams;
         std::vector<RtParams::SharedPtr> mMissParams;
     };
 }

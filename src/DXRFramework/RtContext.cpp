@@ -33,8 +33,8 @@ namespace DXRFramework
         // 2x bottom and top level acceleration structure fallback wrapped pointer UAVs
         // 1x raytracing output texture SRV
         // 1x global camera SBV
-        // 2x model_0 vertex buffer SRV & wrapped pointer for testing
-        descriptorHeapDesc.NumDescriptors = 6;
+        // 3x model vertex buffer SRV & wrapped pointer for testing
+        descriptorHeapDesc.NumDescriptors = 7;
         descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         descriptorHeapDesc.NodeMask = 0;

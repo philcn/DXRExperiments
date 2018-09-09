@@ -5,13 +5,13 @@
 
 namespace DXRFramework
 {
-    RtBindings::SharedPtr RtBindings::create(RtContext::SharedPtr context, RtProgram::SharedPtr program)
+    RtBindings::SharedPtr RtBindings::create(RtContext::SharedPtr context, RtProgram::SharedPtr program, RtScene::SharedPtr scene)
     {
-        return SharedPtr(new RtBindings(context, program));
+        return SharedPtr(new RtBindings(context, program, scene));
     }
 
-    RtBindings::RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program)
-        : mProgram(program)
+    RtBindings::RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program, RtScene::SharedPtr scene)
+        : mProgram(program), mScene(scene)
     {
         init(context);
     }
@@ -23,37 +23,38 @@ namespace DXRFramework
         mHitProgCount = mProgram->getHitProgramCount();
         mMissProgCount = mProgram->getMissProgramCount();
         mFirstHitVarEntry = kFirstMissRecordIndex + mMissProgCount;
-        uint32_t recordCountPerHit = 1; // mScene->getGeometryCount(mHitProgCount);
-
         mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
 
         mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
 
         // Find the max root-signature size, create params with root signatures and reserve space
-        uint32_t maxRootSigSize = 4 /* padding */ + 8 * 2; // TEMP: 2 DWORD space
+        uint32_t maxRootSigSize = 4 /* padding */ + sizeof(UINT64) * 2; // TEMP
 
         mRayGenParams = RtParams::create(mProgramIdentifierSize); // mProgram->getRayGenProgram();
         mRayGenParams->allocateStorage(maxRootSigSize);
         // update maxRootSigSize
 
+        uint32_t recordCountPerHit = mScene->getNumInstances();
         mHitParams.resize(mHitProgCount);
-        for (uint32_t i = 0 ; i < mHitProgCount; i++) {
-            mHitParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getHitProgram(i);
-            mHitParams[i]->allocateStorage(maxRootSigSize);
-            // update maxRootSigSize
+        for (int i = 0 ; i < mHitProgCount; ++i) {
+            mHitParams[i].resize(recordCountPerHit);
+            for (int j = 0; j < recordCountPerHit; ++j) {
+                mHitParams[i][j] = RtParams::create(mProgramIdentifierSize); // mProgram->getHitProgram(i);
+                mHitParams[i][j]->allocateStorage(maxRootSigSize);
+                // update maxRootSigSize
+            }
         }
 
         mMissParams.resize(mMissProgCount);
-        for (uint32_t i = 0 ; i < mHitProgCount; i++) {
+        for (int i = 0 ; i < mHitProgCount; ++i) {
             mMissParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getMissProgram(i);
             mMissParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
         }
 
         // Allocate shader table
-
         uint32_t hitEntries = recordCountPerHit * mHitProgCount;
-        uint32_t numEntries = mMissProgCount + hitEntries + 1; // 1 is for the ray-gen
+        uint32_t numEntries = mMissProgCount + hitEntries + 1 /* ray-gen */;
 
         mRecordSize = mProgramIdentifierSize + maxRootSigSize;
         mRecordSize = ROUND_UP(mRecordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
@@ -105,10 +106,10 @@ namespace DXRFramework
 
         uint32_t hitCount = mProgram->getHitProgramCount();
         for (uint32_t h = 0; h < hitCount; h++) {
-            int geometryCount = 1; // mScene->getGeometryCount(hitCount);
+            int geometryCount = mScene->getNumInstances();
             for (uint32_t i = 0; i < geometryCount; i++) {
                 uint8_t *pHitRecord = getHitRecordPtr(h, i);
-                applyRtProgramVars(pHitRecord, mProgram->getHitProgram(h), rtso, mHitParams[h]); // mHitVars[h][i]
+                applyRtProgramVars(pHitRecord, mProgram->getHitProgram(h), rtso, mHitParams[h][i]);
             }
         }
 
