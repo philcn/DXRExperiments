@@ -53,8 +53,8 @@ namespace DXRFramework
         context->bindDescriptorHeap();
 
         tlasGenerator.Generate(commandList, fallbackCommandList, scratch.Get(), mTlasBuffer.Get(), instanceDesc.Get(), 
-            [&](ID3D12Resource *resource) -> WRAPPED_GPU_POINTER { return context->createUAVFallbackWrappedPointer(resource); });
+            [&](ID3D12Resource *resource) -> WRAPPED_GPU_POINTER { return context->createBufferUAVWrappedPointer(resource); });
 
-        mTlasWrappedPointer = context->createUAVFallbackWrappedPointer(mTlasBuffer.Get());
+        mTlasWrappedPointer = context->createBufferUAVWrappedPointer(mTlasBuffer.Get());
     }
 }

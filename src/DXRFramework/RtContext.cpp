@@ -29,12 +29,13 @@ namespace DXRFramework
     void RtContext::createDescriptorHeap()
     {
         D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
-        // Allocate a heap for 3 descriptors:
-        // 2x bottom and top level acceleration structure fallback wrapped pointer UAVs
-        // 1x raytracing output texture SRV
-        // 1x global camera SBV
-        // 3x model vertex buffer SRV & wrapped pointer for testing
-        descriptorHeapDesc.NumDescriptors = 7;
+        // 1x raytracing output texture UAV
+        // 1x tlas fallback wrapped pointer
+        // 2x blas fallback wrapped pointer
+        // 2x model vertex buffer SRV
+        // 1x global camera SRV
+        // 2x test texture SRV
+        descriptorHeapDesc.NumDescriptors = 9;
         descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         descriptorHeapDesc.NodeMask = 0;
@@ -58,7 +59,7 @@ namespace DXRFramework
     
     RtContext::~RtContext() = default;
 
-    WRAPPED_GPU_POINTER RtContext::createUAVFallbackWrappedPointer(ID3D12Resource* resource)
+    WRAPPED_GPU_POINTER RtContext::createBufferUAVWrappedPointer(ID3D12Resource* resource)
     {
         D3D12_UNORDERED_ACCESS_VIEW_DESC rawBufferUavDesc = {};
         rawBufferUavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -75,7 +76,7 @@ namespace DXRFramework
         return mFallbackDevice->GetWrappedPointerSimple(descriptorHeapIndex, resource->GetGPUVirtualAddress());
     }
 
-    WRAPPED_GPU_POINTER RtContext::createSRVFallbackWrappedPointer(ID3D12Resource* resource, bool rawBuffer, UINT structureStride)
+    WRAPPED_GPU_POINTER RtContext::createBufferSRVWrappedPointer(ID3D12Resource* resource, bool rawBuffer, UINT structureStride)
     {
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -90,6 +91,25 @@ namespace DXRFramework
             srvDesc.Buffer.StructureByteStride = structureStride;
             srvDesc.Buffer.NumElements = (UINT)(resource->GetDesc().Width / structureStride);
         }
+
+        UINT descriptorHeapIndex = 0;
+        if (!mFallbackDevice->UsingRaytracingDriver()) {
+            D3D12_CPU_DESCRIPTOR_HANDLE bottomLevelDescriptor;
+            descriptorHeapIndex = allocateDescriptor(&bottomLevelDescriptor);
+            mDevice->CreateShaderResourceView(resource, &srvDesc, bottomLevelDescriptor);
+        }
+        return mFallbackDevice->GetWrappedPointerSimple(descriptorHeapIndex, resource->GetGPUVirtualAddress());
+    }
+
+    WRAPPED_GPU_POINTER RtContext::createTextureSRVWrappedPointer(ID3D12Resource* resource)
+    {
+        auto textureDesc = resource->GetDesc();
+
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        srvDesc.Format = textureDesc.Format;
+        srvDesc.Texture2D.MipLevels = (!textureDesc.MipLevels) ? -1 : textureDesc.MipLevels;
 
         UINT descriptorHeapIndex = 0;
         if (!mFallbackDevice->UsingRaytracingDriver()) {

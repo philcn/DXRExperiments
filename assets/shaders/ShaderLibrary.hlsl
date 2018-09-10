@@ -4,7 +4,10 @@
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
+////////////////////////////////////////////////////////////////////////////////
 // Global root signature
+////////////////////////////////////////////////////////////////////////////////
+
 RWTexture2D<float4> gOutput : register(u0);
 RaytracingAccelerationStructure SceneBVH : register(t0);
 cbuffer CameraConstants : register(b0)
@@ -12,13 +15,30 @@ cbuffer CameraConstants : register(b0)
     CameraParams cameraParams;
 }
 
-// Local root signature
+SamplerState defaultSampler : register(s0);
+
+////////////////////////////////////////////////////////////////////////////////
+// Hit-group local root signature
+////////////////////////////////////////////////////////////////////////////////
+
 // StructuredBuffer<Vertex> vertexBuffer : register(t0, space1);
 Buffer<float3> vertexData : register(t0, space1);
-cbuffer LocalData : register(b0, space1)
+
+////////////////////////////////////////////////////////////////////////////////
+// Miss shader local root signature
+////////////////////////////////////////////////////////////////////////////////
+
+cbuffer LocalData : register(b0, space2)
 {
     int localData;
 }
+
+Texture2D envMap : register(t0, space2);
+TextureCube radianceTexture : register(t1, space2);
+
+////////////////////////////////////////////////////////////////////////////////
+// Ray-gen shader
+////////////////////////////////////////////////////////////////////////////////
 
 [shader("raygeneration")] 
 void RayGen() 
@@ -66,6 +86,10 @@ void RayGen()
 
     gOutput[launchIndex] = float4(pow(averageColor, 1.0f / 2.2f), 1.0f);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Hit shader
+////////////////////////////////////////////////////////////////////////////////
 
 void interpolateHitPointData(float2 bary, out float3 hitPosition, out float3 hitNormal)
 {
@@ -116,15 +140,36 @@ void ClosestHit(inout HitInfo payload, Attributes attrib)
     payload.colorAndDistance = float4(color, RayTCurrent());
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Miss shader
+////////////////////////////////////////////////////////////////////////////////
+
+#define M_PI 3.1415927
+#define M_1_PI (1.0 / M_PI)
+
+float2 wsVectorToLatLong(float3 dir)
+{
+    float3 p = normalize(dir);
+    float u = (1.f + atan2(p.x, -p.z) * M_1_PI) * 0.5f;
+    float v = acos(p.y) * M_1_PI;
+    return float2(u, v);
+}
+
 [shader("miss")]
 void Miss(inout HitInfo payload : SV_RayPayload)
 {
     uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
 
-    float ramp = launchIndex.y / dims.y;
-//    payload.colorAndDistance = float4(1.0f, 0.2f, 0.7f - 0.3f * ramp, -1.0f);
-    payload.colorAndDistance = float4(localData / 255.0f, 0.0f, 0.0f, -1.0f);
+    // cubemap
+//    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, launchIndex / dims, 0.0); // Texture2D
+    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, normalize(WorldRayDirection().xyz), 0.0); // TextureCube
+
+    // lat-long map
+    float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
+    float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
+
+    payload.colorAndDistance = float4(envSample.rgb, -1.0);
 }
 
 #endif // SHADER_LIBRARY_HLSL

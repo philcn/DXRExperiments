@@ -160,6 +160,16 @@ namespace DXRFramework
             // slot 2, GlobalRootSignatureParams::CameraParameterSlot
             rootSigGenerator.AddHeapRangesParameter({{0 /* b0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0}});
 
+            D3D12_STATIC_SAMPLER_DESC cubeSampler = {};
+            cubeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            cubeSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            cubeSampler.ShaderRegister = 0;
+
+            rootSigGenerator.AddStaticSampler(cubeSampler);
+
             return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
         #else
             CD3DX12_DESCRIPTOR_RANGE ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.

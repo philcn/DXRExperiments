@@ -4,6 +4,10 @@
 #include "RaytracingHlslCompat.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
 
+#include "WICTextureLoader.h"
+#include "DDSTextureLoader.h"
+#include "ResourceUploadBatch.h"
+
 using namespace std;
 using namespace DXRFramework;
 
@@ -41,6 +45,9 @@ void DXRFrameworkApp::OnInit()
     CreateCameraBuffer();
 }
 
+static ComPtr<ID3D12Resource> sTextureResources[2];
+static WRAPPED_GPU_POINTER sTextureHandle[2];
+
 void DXRFrameworkApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
@@ -66,6 +73,27 @@ void DXRFrameworkApp::InitRaytracing()
     mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\susanne.obj"), mat);
 
     mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
+
+    // Load textures
+    #if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+        Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
+        ThrowIfFailed(initialize, L"Cannot initialize WIC");
+    #else
+        #error Unsupported Windows version
+    #endif
+
+    {
+        ResourceUploadBatch resourceUpload(device);
+        resourceUpload.Begin();
+        ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\Mans_Outside_8k_TMap.jpg", &sTextureResources[0], true));
+        ThrowIfFailed(CreateDDSTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\CathedralRadiance.dds", &sTextureResources[1]));
+
+        auto uploadResourcesFinished = resourceUpload.End(m_deviceResources->GetCommandQueue());
+        uploadResourcesFinished.wait();
+
+        sTextureHandle[0] = mRtContext->createTextureSRVWrappedPointer(sTextureResources[0].Get());
+        sTextureHandle[1] = mRtContext->createTextureSRVWrappedPointer(sTextureResources[1].Get());
+    }
 }
 
 void DXRFrameworkApp::BuildAccelerationStructures()
@@ -163,6 +191,8 @@ void DXRFrameworkApp::DoRaytracing()
     {
         int32_t constant0 = 16;
         mRtBindings->getMissVars(0)->append32BitConstants(&constant0, 1);
+        mRtBindings->getMissVars(0)->appendDescriptor(sTextureHandle[0]);
+        mRtBindings->getMissVars(0)->appendDescriptor(sTextureHandle[1]);
 
         for (int i = 0; i < 2; ++i) {
             WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(i)->getVertexBufferWrappedPtr();
