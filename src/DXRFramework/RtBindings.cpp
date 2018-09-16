@@ -34,11 +34,11 @@ namespace DXRFramework
         mRayGenParams->allocateStorage(maxRootSigSize);
         // update maxRootSigSize
 
-        uint32_t recordCountPerHit = mScene->getNumInstances();
+        UINT recordCountPerHit = mScene->getNumInstances();
         mHitParams.resize(mHitProgCount);
-        for (int i = 0 ; i < mHitProgCount; ++i) {
+        for (UINT i = 0 ; i < mHitProgCount; ++i) {
             mHitParams[i].resize(recordCountPerHit);
-            for (int j = 0; j < recordCountPerHit; ++j) {
+            for (UINT j = 0; j < recordCountPerHit; ++j) {
                 mHitParams[i][j] = RtParams::create(mProgramIdentifierSize); // mProgram->getHitProgram(i);
                 mHitParams[i][j]->allocateStorage(maxRootSigSize);
                 // update maxRootSigSize
@@ -46,21 +46,21 @@ namespace DXRFramework
         }
 
         mMissParams.resize(mMissProgCount);
-        for (int i = 0 ; i < mHitProgCount; ++i) {
+        for (UINT i = 0 ; i < mHitProgCount; ++i) {
             mMissParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getMissProgram(i);
             mMissParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
         }
 
         // Allocate shader table
-        uint32_t hitEntries = recordCountPerHit * mHitProgCount;
-        uint32_t numEntries = mMissProgCount + hitEntries + 1 /* ray-gen */;
+        UINT hitEntries = recordCountPerHit * mHitProgCount;
+        UINT numEntries = mMissProgCount + hitEntries + 1 /* ray-gen */;
 
         mRecordSize = mProgramIdentifierSize + maxRootSigSize;
         mRecordSize = ROUND_UP(mRecordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
         assert(mRecordSize != 0);
 
-        uint32_t shaderTableSize = numEntries * mRecordSize;
+        UINT shaderTableSize = numEntries * mRecordSize;
 
         mShaderTableData.resize(shaderTableSize);
         mShaderTable = nv_helpers_dx12::CreateBuffer(context->getDevice(), shaderTableSize, D3D12_RESOURCE_FLAG_NONE,
@@ -104,16 +104,16 @@ namespace DXRFramework
         uint8_t *rayGenRecord = getRayGenRecordPtr();
         applyRtProgramVars(rayGenRecord, mProgram->getRayGenProgram(), rtso, mRayGenParams);
 
-        uint32_t hitCount = mProgram->getHitProgramCount();
-        for (uint32_t h = 0; h < hitCount; h++) {
-            int geometryCount = mScene->getNumInstances();
-            for (uint32_t i = 0; i < geometryCount; i++) {
+        UINT hitCount = mProgram->getHitProgramCount();
+        for (UINT h = 0; h < hitCount; h++) {
+            UINT geometryCount = mScene->getNumInstances();
+            for (UINT i = 0; i < geometryCount; i++) {
                 uint8_t *pHitRecord = getHitRecordPtr(h, i);
                 applyRtProgramVars(pHitRecord, mProgram->getHitProgram(h), rtso, mHitParams[h][i]);
             }
         }
 
-        for (uint32_t m = 0; m < mProgram->getMissProgramCount(); m++) {
+        for (UINT m = 0; m < mProgram->getMissProgramCount(); m++) {
             uint8_t *pMissRecord = getMissRecordPtr(m);
             applyRtProgramVars(pMissRecord, mProgram->getMissProgram(m), rtso, mMissParams[m]);
         }
