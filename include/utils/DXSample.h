@@ -50,6 +50,7 @@ public:
     RECT GetWindowsBounds() const { return m_windowBounds; }
     virtual IDXGISwapChain* GetSwapchain() { return nullptr; }
     DX::DeviceResources* GetDeviceResources() const { return m_deviceResources.get(); }
+    int GetFrameCount() const { return m_frameCnt; }
 
     void UpdateForSizeChange(UINT clientWidth, UINT clientHeight);
     void SetWindowBounds(int left, int top, int right, int bottom);
@@ -83,4 +84,7 @@ private:
 
     // Window title.
     std::wstring m_title;
+
+    int m_frameCnt;
+    double m_elapsedTime;
 };

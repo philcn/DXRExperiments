@@ -4,6 +4,8 @@
 #define HLSL
 #include "RaytracingHlslCompat.h"
 
+#include "RaytracingUtils.hlsli"
+
 ////////////////////////////////////////////////////////////////////////////////
 // Global root signature
 ////////////////////////////////////////////////////////////////////////////////
@@ -14,6 +16,7 @@ cbuffer PerFrameConstants : register(b0)
 {
     CameraParams cameraParams;
     DirectionalLightParams directionalLight;
+    uint frameCount;
 }
 
 SamplerState defaultSampler : register(s0);
@@ -58,7 +61,7 @@ void RayGen()
     // +---+---+---+---+
     // |   |   | * |   |  0.125,  0.375
     // +---+---+---+---+
-    int numAASamples = 4;
+    int numAASamples = 1;
     const float2 jitters[4] = 
     {
         { -0.125, -0.375 },
@@ -143,6 +146,23 @@ float shootShadowRay(float3 orig, float3 dir, float minT, float maxT)
     return payload.lightVisibility;
 }
 
+float evaluateAO(float3 position, float3 normal)
+{
+    float visibility = 1.0f;
+    const int aoRayCount = 4;
+
+    uint2 pixIdx = DispatchRaysIndex();
+    uint2 numPix = DispatchRaysDimensions();
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
+
+    for (int i = 0; i < aoRayCount; ++i) {
+        float3 sampleDir = getCosHemisphereSample(randSeed, normal);
+        visibility += shootShadowRay(position, sampleDir, 0.001, 10.0);
+    }
+
+    return visibility / float(aoRayCount);
+}
+
 float3 shade(float3 position, float3 normal, uint currentDepth)
 {
     const float3 albedo = float3(0.85f, 0.85f, 0.85f);
@@ -151,7 +171,7 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     float3 N = normalize(normal);
     float NoL = dot(N, L);
 
-    float3 color = 0.1;
+    float3 color = 0.2;
 
     if (NoL > 0.0) {
         float visible = 1.0;
@@ -165,6 +185,8 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
         float3 reflectDir = reflect(WorldRayDirection(), N);
         float3 reflectionColor = shootIndirectRay(position, reflectDir, 0.001, currentDepth);
         color += reflectionColor * 0.3;
+
+        color *= evaluateAO(position, normal);
     }
 
     return color;

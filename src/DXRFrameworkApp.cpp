@@ -193,6 +193,8 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
     constants.directionalLight.color = XMFLOAT4(0.7f, 0.0f, 0.0f, 1.0f);
     XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
 
+    constants.frameCount = GetFrameCount();
+
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     memcpy((uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * frameIndex, &constants, sizeof(constants));
 }

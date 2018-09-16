@@ -22,7 +22,9 @@ DXSample::DXSample(UINT width, UINT height, std::wstring name) :
     m_title(name),
     m_aspectRatio(0.0f),
     m_enableUI(true),
-    m_adapterIDoverride(UINT_MAX)
+    m_adapterIDoverride(UINT_MAX),
+    m_frameCnt(0),
+    m_elapsedTime(0.0)
 {
     WCHAR assetsPath[512];
     GetAssetsPath(assetsPath, _countof(assetsPath));
@@ -97,17 +99,17 @@ void DXSample::SetWindowBounds(int left, int top, int right, int bottom)
 
 void DXSample::CalculateFrameStats()
 {
-    static int frameCnt = 0;
-    static double elapsedTime = 0.0f;
+    static int frameCntSinceLastCall = 0;
     double totalTime = mTimer.GetTotalSeconds();
-    frameCnt++;
+    m_frameCnt++;
+    frameCntSinceLastCall++;
 
-    if ((totalTime - elapsedTime) >= 1.0f) {
-        float diff = static_cast<float>(totalTime - elapsedTime);
-        float fps = static_cast<float>(frameCnt) / diff; // Normalize to an exact second.
+    if ((totalTime - m_elapsedTime) >= 1.0f) {
+        float diff = static_cast<float>(totalTime - m_elapsedTime);
+        float fps = static_cast<float>(frameCntSinceLastCall) / diff; // Normalize to an exact second.
 
-        frameCnt = 0;
-        elapsedTime = totalTime;
+        frameCntSinceLastCall = 0;
+        m_elapsedTime = totalTime;
 
         float MRaysPerSecond = (m_width * m_height * fps) / static_cast<float>(1e6);
 

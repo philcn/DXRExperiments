@@ -72,6 +72,7 @@ struct PerFrameConstants
 {
     CameraParams cameraParams;
     DirectionalLightParams directionalLight;
+    UINT frameCount;
 };
 
 #endif // RAYTRACINGHLSLCOMPAT_H
