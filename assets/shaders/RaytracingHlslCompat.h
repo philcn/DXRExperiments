@@ -33,6 +33,12 @@ typedef UINT16 Index;
 struct HitInfo
 {
     XMFLOAT4 colorAndDistance;
+    UINT depth;
+};
+
+struct ShadowPayload
+{
+    float lightVisibility;
 };
 
 // Attributes output by the raytracing when hitting a surface,
@@ -54,6 +60,18 @@ struct CameraParams
     XMFLOAT4 U;
     XMFLOAT4 V;
     XMFLOAT4 W;
+};
+
+struct DirectionalLightParams
+{
+    XMFLOAT4 forwardDir;
+    XMFLOAT4 color;
+};
+
+struct PerFrameConstants
+{
+    CameraParams cameraParams;
+    DirectionalLightParams directionalLight;
 };
 
 #endif // RAYTRACINGHLSLCOMPAT_H

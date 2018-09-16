@@ -35,7 +35,8 @@ namespace DXRFramework
         // 2x model vertex buffer SRV
         // 1x global camera SRV
         // 2x test texture SRV
-        descriptorHeapDesc.NumDescriptors = 9;
+        // 1x per-frame constants CBV
+        descriptorHeapDesc.NumDescriptors = 10;
         descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         descriptorHeapDesc.NodeMask = 0;

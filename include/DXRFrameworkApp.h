@@ -34,9 +34,10 @@ private:
     ComPtr<ID3D12Resource> mOutputResource;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputResourceUAVGpuDescriptor;
 
-    UINT mCameraConstantBufferSize;
-    ComPtr<ID3D12Resource> mCameraConstantBuffer;
-    D3D12_GPU_DESCRIPTOR_HANDLE mCameraCBVGpuDescriptor;
+    UINT mAlignedPerFrameConstantBufferSize;
+    ComPtr<ID3D12Resource> mPerFrameConstantBuffer;
+    D3D12_GPU_DESCRIPTOR_HANDLE mPerFrameCBVGpuHandle;
+    void *mMappedPerFrameConstantsData;
 
     ////////////////////////////////////////////////////////////////////////////////
 
@@ -56,6 +57,6 @@ private:
     void CreateRaytracingOutputBuffer();
     void CopyRaytracingOutputToBackbuffer();
 
-    void CreateCameraBuffer();
-    void UpdateCameraMatrices(float elapsedTime);
+    void CreateConstantBuffers();
+    void UpdatePerFrameConstants(float elapsedTime);
 };

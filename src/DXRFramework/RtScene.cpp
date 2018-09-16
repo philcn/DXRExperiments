@@ -16,7 +16,7 @@ namespace DXRFramework
 
     RtScene::~RtScene() = default;
 
-    void RtScene::build(RtContext::SharedPtr context)
+    void RtScene::build(RtContext::SharedPtr context, UINT hitGroupCount)
     {
         auto device = context->getDevice();
         auto commandList = context->getCommandList();
@@ -27,7 +27,7 @@ namespace DXRFramework
 
         for (int i = 0; i < mInstances.size(); ++i) {
             mInstances[i]->mModel->build(context);
-            tlasGenerator.AddInstance(mInstances[i]->mModel->mBlasBuffer.Get(), mInstances[i]->mTransform, i, i);
+            tlasGenerator.AddInstance(mInstances[i]->mModel->mBlasBuffer.Get(), mInstances[i]->mTransform, i, i * hitGroupCount);
         }
 
         UINT64 scratchSizeInBytes = 0;

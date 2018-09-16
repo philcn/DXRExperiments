@@ -1,4 +1,4 @@
-#ifndef SHADER_LIBRARY_HLSL
+﻿#ifndef SHADER_LIBRARY_HLSL
 #define SHADER_LIBRARY_HLSL
 
 #define HLSL
@@ -10,9 +10,10 @@
 
 RWTexture2D<float4> gOutput : register(u0);
 RaytracingAccelerationStructure SceneBVH : register(t0);
-cbuffer CameraConstants : register(b0)
+cbuffer PerFrameConstants : register(b0)
 {
     CameraParams cameraParams;
+    DirectionalLightParams directionalLight;
 }
 
 SamplerState defaultSampler : register(s0);
@@ -21,13 +22,14 @@ SamplerState defaultSampler : register(s0);
 // Hit-group local root signature
 ////////////////////////////////////////////////////////////////////////////////
 
-// StructuredBuffer<Vertex> vertexBuffer : register(t0, space1);
+// StructuredBuffer<Vertex> vertexBuffer : register(t0, space1); // doesn't work in Fallback Layer
 Buffer<float3> vertexData : register(t0, space1);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Miss shader local root signature
 ////////////////////////////////////////////////////////////////////////////////
 
+// just for testing 32-bit local root parameter
 cbuffer LocalData : register(b0, space2)
 {
     int localData;
@@ -69,6 +71,7 @@ void RayGen()
     for (int i = 0; i < numAASamples; ++i) {
         HitInfo payload;
         payload.colorAndDistance = float4(0, 0, 0, 0);
+        payload.depth = 0;
 
         float2 jitter = jitters[i] * 2.0f / dims;
 
@@ -78,7 +81,7 @@ void RayGen()
         ray.TMin = 0;
         ray.TMax = 100000;
 
-        TraceRay(SceneBVH, RAY_FLAG_NONE, 0xFF, 0, 0, 0, ray, payload);
+        TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
         averageColor += payload.colorAndDistance.rgb;
     }
@@ -88,56 +91,105 @@ void RayGen()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Hit shader
+// Hit groups
 ////////////////////////////////////////////////////////////////////////////////
 
-void interpolateHitPointData(float2 bary, out float3 hitPosition, out float3 hitNormal)
+void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float3 vertNormal)
 {
     uint vertId = 3 * PrimitiveIndex();
     float3 barycentrics = float3(1.f - bary.x - bary.y, bary.x, bary.y);
 
-    /*
-        hitPosition = vertexBuffer[vertId + 0].position * barycentrics.x +
-                      vertexBuffer[vertId + 1].position * barycentrics.y +
-                      vertexBuffer[vertId + 2].position * barycentrics.z;
-    */
+    // vertPosition = vertexBuffer[vertId + 0].position * barycentrics.x +
+    //                vertexBuffer[vertId + 1].position * barycentrics.y +
+    //                vertexBuffer[vertId + 2].position * barycentrics.z;
 
     const uint strideInFloat3s = 2;
     const uint positionOffsetInFloat3s = 0;
     const uint normalOffsetInFloat3s = 1;
 
-    hitPosition = vertexData.Load((vertId + 0) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.x +
-                  vertexData.Load((vertId + 1) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.y +
-                  vertexData.Load((vertId + 2) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.z;
+    vertPosition = vertexData.Load((vertId + 0) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.x +
+                   vertexData.Load((vertId + 1) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.y +
+                   vertexData.Load((vertId + 2) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.z;
  
-    hitNormal = vertexData.Load((vertId + 0) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.x +
-                vertexData.Load((vertId + 1) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.y +
-                vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
+    vertNormal = vertexData.Load((vertId + 0) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.x +
+                 vertexData.Load((vertId + 1) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.y +
+                 vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
 }
 
-float3 shade(float3 position, float3 normal)
+float3 shootIndirectRay(float3 orig, float3 dir, float minT, uint currentDepth)
 {
-    const float3 lightDir = float3(1.0f, 0.5f, 0.25f);
-    const float3 diffuseColor = float3(0.95f, 0.93f, 0.92f);
+    RayDesc ray = { orig, minT, dir, 1.0e+38f };
 
-    float3 L = normalize(lightDir);
+    HitInfo payload;
+    payload.colorAndDistance = float4(0, 0, 0, 0);
+    payload.depth = currentDepth + 1;
+
+    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 0, ray, payload);
+
+    float3 reflectionColor = payload.colorAndDistance.rgb;
+
+    float hitT = payload.colorAndDistance.a;
+    float falloff = max(1, (hitT * hitT));
+
+    return hitT == -1 ? reflectionColor : reflectionColor * saturate(2.5 / falloff);
+}
+
+float shootShadowRay(float3 orig, float3 dir, float minT, float maxT)
+{
+    RayDesc ray = { orig, minT, dir, maxT };
+
+    ShadowPayload payload = { 0.0 };
+    TraceRay(SceneBVH, RAY_FLAG_ACCEPT_FIRST_HIT_AND_END_SEARCH | RAY_FLAG_SKIP_CLOSEST_HIT_SHADER, 0xFF, 1, 0, 1, ray, payload);
+    return payload.lightVisibility;
+}
+
+float3 shade(float3 position, float3 normal, uint currentDepth)
+{
+    const float3 albedo = float3(0.85f, 0.85f, 0.85f);
+
+    float3 L = normalize(-directionalLight.forwardDir.xyz);
     float3 N = normalize(normal);
-    float NoL = saturate(dot(N, L));
+    float NoL = dot(N, L);
 
-    float3 color = diffuseColor * NoL;
+    float3 color = 0.1;
+
+    if (NoL > 0.0) {
+        float visible = 1.0;
+        if (currentDepth < 2) {
+            visible = shootShadowRay(position, L, 0.001, 10.0);
+        }
+        color += albedo * directionalLight.color.rgb * NoL * visible;
+    }
+
+    if (currentDepth < 1) {
+        float3 reflectDir = reflect(WorldRayDirection(), N);
+        float3 reflectionColor = shootIndirectRay(position, reflectDir, 0.001, currentDepth);
+        color += reflectionColor * 0.3;
+    }
 
     return color;
 }
 
+// Hit group 1
+
 [shader("closesthit")] 
-void ClosestHit(inout HitInfo payload, Attributes attrib) 
+void PrimaryClosestHit(inout HitInfo payload, Attributes attrib) 
 {
-    float3 hitPosition, hitNormal;
-    interpolateHitPointData(attrib.bary, hitPosition, hitNormal);
+    float3 vertPosition, vertNormal;
+    interpolateVertexAttributes(attrib.bary, vertPosition, vertNormal);
 
-    float3 color = shade(hitPosition, hitNormal);
+    float3 hitPosition = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 
+    float3 color = shade(hitPosition, vertNormal, payload.depth);
     payload.colorAndDistance = float4(color, RayTCurrent());
+}
+
+// Hit group 2
+
+[shader("anyhit")]
+void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)
+{
+    // no-op
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -156,20 +208,25 @@ float2 wsVectorToLatLong(float3 dir)
 }
 
 [shader("miss")]
-void Miss(inout HitInfo payload : SV_RayPayload)
+void PrimaryMiss(inout HitInfo payload : SV_RayPayload)
 {
     uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
 
-    // cubemap
-//    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, launchIndex / dims, 0.0); // Texture2D
-    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, normalize(WorldRayDirection().xyz), 0.0); // TextureCube
+    // cubemap, doesn't work now
+    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, normalize(WorldRayDirection().xyz), 0.0);
 
-    // lat-long map
+    // lat-long environment map
     float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
     float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
 
     payload.colorAndDistance = float4(envSample.rgb, -1.0);
+}
+
+[shader("miss")]
+void ShadowMiss(inout ShadowPayload payload : SV_RayPayload)
+{
+    payload.lightVisibility = 1.0;
 }
 
 #endif // SHADER_LIBRARY_HLSL

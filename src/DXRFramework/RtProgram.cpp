@@ -157,8 +157,8 @@ namespace DXRFramework
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0); // t0
             // slot 1, GlobalRootSignatureParams::OutputViewSlot
             rootSigGenerator.AddHeapRangesParameter({{0 /* u0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0}});
-            // slot 2, GlobalRootSignatureParams::CameraParameterSlot
-            rootSigGenerator.AddHeapRangesParameter({{0 /* b0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 0}});
+            // slot 2, GlobalRootSignatureParams::PerFrameConstantsSlot
+            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0); // b0
 
             D3D12_STATIC_SAMPLER_DESC cubeSampler = {};
             cubeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
