@@ -7,6 +7,8 @@
 #include "DXRFramework/RtState.h"
 #include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtScene.h"
+#include "Camera.h"
+#include "CameraController.h"
 #include <vector>
 
 class DXRFrameworkApp : public DXSample
@@ -28,6 +30,9 @@ private:
 
     bool mUseDXRDriver;
     bool mRaytracingEnabled;
+
+    Math::Camera mCamera;
+    std::shared_ptr<GameCore::CameraController> mCamController;
 
     ////////////////////////////////////////////////////////////////////////////////
 

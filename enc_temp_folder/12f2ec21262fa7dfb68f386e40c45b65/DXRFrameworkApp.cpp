@@ -3,10 +3,12 @@
 #include "nv_helpers_dx12/DXRHelper.h"
 #include "RaytracingHlslCompat.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
-#include "GameInput.h"
+
 #include "WICTextureLoader.h"
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
+
+#include "GameInput.h"
 
 using namespace std;
 using namespace DXRFramework;

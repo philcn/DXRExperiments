@@ -62,7 +62,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;$(SolutionDir)..\DirectXTK12\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\MiniEngine;$(SolutionDir)..\DirectXTK12\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -221,7 +221,37 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\libs\assimp\include\assimp\version.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\Vertex.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\XMLTools.h" />
+    <ClCompile Include="..\libs\MiniEngine\Camera.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\CameraController.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\GameInput.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\Math\Frustum.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\Math\Random.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\src\DXRFramework\RtParams.cpp" />
+    <ClInclude Include="..\libs\MiniEngine\Camera.h" />
+    <ClInclude Include="..\libs\MiniEngine\CameraController.h" />
+    <ClInclude Include="..\libs\MiniEngine\GameInput.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\BoundingPlane.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\BoundingSphere.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Common.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Frustum.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Matrix3.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Matrix4.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Quaternion.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Random.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Scalar.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Transform.h" />
+    <ClInclude Include="..\libs\MiniEngine\Math\Vector.h" />
+    <ClInclude Include="..\libs\MiniEngine\VectorMath.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp" />
@@ -321,6 +351,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
   </ItemGroup>
   <ItemGroup>
     <None Include="..\assets\shaders\RaytracingUtils.hlsli" />
+    <None Include="..\libs\MiniEngine\Math\Functions.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

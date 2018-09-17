@@ -18,6 +18,11 @@ bool Win32Application::m_fullscreenMode = false;
 RECT Win32Application::m_windowRect;
 using Microsoft::WRL::ComPtr;
 
+namespace GameCore
+{
+    HWND g_hWnd;
+}
+
 int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
 {
     try
@@ -54,6 +59,8 @@ int Win32Application::Run(DXSample* pSample, HINSTANCE hInstance, int nCmdShow)
             nullptr,        // We aren't using menus.
             hInstance,
             pSample);
+
+        GameCore::g_hWnd = m_hwnd;
 
         // Initialize the sample. OnInit is defined in each child-implementation of DXSample.
         pSample->OnInit();

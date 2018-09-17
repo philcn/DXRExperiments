@@ -45,6 +45,12 @@
     <Filter Include="Libs\assimp\include\assimp">
       <UniqueIdentifier>{6ac0081a-dda5-4076-b7ee-06b4e769c9dd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libs\MiniEngine">
+      <UniqueIdentifier>{73096f90-88e8-4d69-8831-de03e432c2f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs\MiniEngine\Math">
+      <UniqueIdentifier>{f2a8364f-26fb-43ba-9d45-2eb857c6ae26}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\utils\DXSampleHelper.h">
@@ -338,6 +344,51 @@
     <ClInclude Include="..\include\DXRFramework\RtParams.h">
       <Filter>Header Files\DXRFramework</Filter>
     </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Camera.h">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\VectorMath.h">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Matrix3.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Matrix4.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Quaternion.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Random.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Scalar.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Transform.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Vector.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\BoundingPlane.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\BoundingSphere.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Common.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\Math\Frustum.h">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\GameInput.h">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\MiniEngine\CameraController.h">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -397,6 +448,21 @@
     <ClCompile Include="..\src\DXRFramework\RtParams.cpp">
       <Filter>Source Files\DXRFramework</Filter>
     </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\Camera.cpp">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\Math\Random.cpp">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\Math\Frustum.cpp">
+      <Filter>Libs\MiniEngine\Math</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\GameInput.cpp">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\MiniEngine\CameraController.cpp">
+      <Filter>Libs\MiniEngine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\assets\shaders\ShaderLibrary.hlsl">
@@ -406,6 +472,9 @@
   <ItemGroup>
     <None Include="..\assets\shaders\RaytracingUtils.hlsli">
       <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="..\libs\MiniEngine\Math\Functions.inl">
+      <Filter>Libs\MiniEngine\Math</Filter>
     </None>
   </ItemGroup>
 </Project>
