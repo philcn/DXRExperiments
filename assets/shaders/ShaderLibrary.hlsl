@@ -17,6 +17,7 @@ cbuffer PerFrameConstants : register(b0)
     CameraParams cameraParams;
     DirectionalLightParams directionalLight;
     uint frameCount;
+    uint accumCount;
 }
 
 SamplerState defaultSampler : register(s0);
@@ -51,46 +52,24 @@ void RayGen()
     uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
     float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
-
-    // +---+---+---+---+
-    // |   | * |   |   | -0.125, -0.375
-    // +---+---+---+---+
-    // |   |   |   | * |  0.375, -0.125
-    // +---+---+---+---+
-    // | * |   |   |   | -0.375,  0.125
-    // +---+---+---+---+
-    // |   |   | * |   |  0.125,  0.375
-    // +---+---+---+---+
-    int numAASamples = 1;
-    const float2 jitters[4] = 
-    {
-        { -0.125, -0.375 },
-        {  0.375, -0.125 },
-        { -0.375,  0.125 },
-        {  0.125,  0.375 }    
-    };
  
-    float3 averageColor = float3(0.0f, 0.0f, 0.0f);
-    for (int i = 0; i < numAASamples; ++i) {
-        HitInfo payload;
-        payload.colorAndDistance = float4(0, 0, 0, 0);
-        payload.depth = 0;
+    HitInfo payload;
+    payload.colorAndDistance = float4(0, 0, 0, 0);
+    payload.depth = 0;
 
-        float2 jitter = jitters[i] * 2.0f / dims;
+    float2 jitter = cameraParams.jitters * 2.0;
 
-        RayDesc ray;
-        ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
-        ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W).xyz;
-        ray.TMin = 0;
-        ray.TMax = 100000;
+    RayDesc ray;
+    ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
+    ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W).xyz;
+    ray.TMin = 0;
+    ray.TMax = 100000;
 
-        TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
+    TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
-        averageColor += payload.colorAndDistance.rgb;
-    }
-    averageColor /= numAASamples;
-
-    gOutput[launchIndex] = float4(pow(averageColor, 1.0f / 2.2f), 1.0f);
+    float4 prevColor = gOutput[launchIndex];
+    float4 curColor = float4(pow(payload.colorAndDistance.rgb, 1.0f / 2.2f), 1.0f);
+    gOutput[launchIndex] = (accumCount * prevColor + curColor) / (accumCount + 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -148,8 +127,8 @@ float shootShadowRay(float3 orig, float3 dir, float minT, float maxT)
 
 float evaluateAO(float3 position, float3 normal)
 {
-    float visibility = 1.0f;
-    const int aoRayCount = 4;
+    float visibility = 0.0f;
+    const int aoRayCount = 1;
 
     uint2 pixIdx = DispatchRaysIndex();
     uint2 numPix = DispatchRaysDimensions();
@@ -176,7 +155,7 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     if (NoL > 0.0) {
         float visible = 1.0;
         if (currentDepth < 2) {
-            visible = shootShadowRay(position, L, 0.001, 10.0);
+            visible = shootShadowRay(position, L, 0.00001, 10.0);
         }
         color += albedo * directionalLight.color.rgb * NoL * visible;
     }

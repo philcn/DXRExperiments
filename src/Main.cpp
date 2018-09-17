@@ -15,6 +15,6 @@
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    DXRFrameworkApp sample(600, 400, L"D3D12 Raytracing - Hello World");
+    DXRFrameworkApp sample(1000, 600, L"D3D12 Raytracing - Hello World");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
 }

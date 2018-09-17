@@ -10,6 +10,7 @@
 #include "Camera.h"
 #include "CameraController.h"
 #include <vector>
+#include <random>
 
 class DXRFrameworkApp : public DXSample
 {
@@ -30,9 +31,18 @@ private:
 
     bool mUseDXRDriver;
     bool mRaytracingEnabled;
+    bool mFrameAccumulationEnabled;
+    bool mAnimationPaused;
+
+    ////////////////////////////////////////////////////////////////////////////////
 
     Math::Camera mCamera;
     std::shared_ptr<GameCore::CameraController> mCamController;
+    Math::Matrix4 mLastCameraVPMatrix;
+    UINT mAccumCount;
+
+    std::mt19937 mRng;
+    std::uniform_real_distribution<float> mRngDist;     
 
     ////////////////////////////////////////////////////////////////////////////////
 
@@ -64,4 +74,6 @@ private:
 
     void CreateConstantBuffers();
     void UpdatePerFrameConstants(float elapsedTime);
+
+    bool HasCameraMoved();
 };

@@ -60,6 +60,8 @@ struct CameraParams
     XMFLOAT4 U;
     XMFLOAT4 V;
     XMFLOAT4 W;
+    XMFLOAT2 jitters;
+    XMFLOAT2 padding;
 };
 
 struct DirectionalLightParams
@@ -73,6 +75,7 @@ struct PerFrameConstants
     CameraParams cameraParams;
     DirectionalLightParams directionalLight;
     UINT frameCount;
+    UINT accumCount;
 };
 
 #endif // RAYTRACINGHLSLCOMPAT_H

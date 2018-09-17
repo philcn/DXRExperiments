@@ -13,7 +13,9 @@ using namespace DXRFramework;
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mRaytracingEnabled(true)
+    mRaytracingEnabled(true),
+    mFrameAccumulationEnabled(true),
+    mAnimationPaused(false)
 {
     UpdateForSizeChange(width, height);
 }
@@ -40,9 +42,13 @@ void DXRFrameworkApp::OnInit()
 
     GameInput::Initialize();
 
-    mCamera.SetEyeAtUp(Math::Vector3(2.0, 0.0, 0.0), Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
+    mCamera.SetEyeAtUp(Math::Vector3(-0.3, 0.2, 3.0), Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
     mCamera.SetZRange(1.0f, 10000.0f);
     mCamController.reset(new GameCore::CameraController(mCamera, mCamera.GetUpVec()));
+
+    auto now = std::chrono::high_resolution_clock::now();
+    auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    mRng = std::mt19937( uint32_t(msTime.time_since_epoch().count()) );
 
     InitRaytracing();
     BuildAccelerationStructures();
@@ -180,25 +186,52 @@ inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XM
     XMStoreFloat4(W, w);
 }
 
+#include <iostream>
+
 void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
 {
+    if (HasCameraMoved() || !mFrameAccumulationEnabled) {
+        mAccumCount = 0;
+        mLastCameraVPMatrix = mCamera.GetViewProjMatrix();
+    }
+
     PerFrameConstants constants = {};
 
-    // camera
+    // Reuse constants for last frame
+    auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
+    memcpy(&constants, (uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * prevFrameIndex, sizeof(constants));
+
+    // Populate camera parameters
     XMStoreFloat4(&constants.cameraParams.worldEyePos, mCamera.GetPosition());
     calculateCameraVariables(mCamera, m_aspectRatio, &constants.cameraParams.U, &constants.cameraParams.V, &constants.cameraParams.W);
 
-    // directional light
-    XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
-    XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
-    dirLightVector = XMVector4Transform(dirLightVector, rotation);
-    constants.directionalLight.color = XMFLOAT4(0.7f, 0.0f, 0.0f, 1.0f);
-    XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
+    float xJitter = (mRngDist(mRng) - 0.5f) / float(m_width);
+    float yJitter = (mRngDist(mRng) - 0.5f) / float(m_height);
+    constants.cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
+
+    if (!mAnimationPaused) {
+        // Populate lights
+        XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
+        XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
+        dirLightVector = XMVector4Transform(dirLightVector, rotation);
+        constants.directionalLight.color = XMFLOAT4(0.7f, 0.0f, 0.0f, 1.0f);
+        XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
+    }
 
     constants.frameCount = GetFrameCount();
+    constants.accumCount = mAccumCount++;
 
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     memcpy((uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * frameIndex, &constants, sizeof(constants));
+}
+
+bool DXRFrameworkApp::HasCameraMoved()
+{
+    const Math::Matrix4 &currentMatrix = mCamera.GetViewProjMatrix();
+    return !(XMVector4Equal(mLastCameraVPMatrix.GetX(), currentMatrix.GetX()) &&
+             XMVector4Equal(mLastCameraVPMatrix.GetY(), currentMatrix.GetY()) &&
+             XMVector4Equal(mLastCameraVPMatrix.GetZ(), currentMatrix.GetZ()) &&
+             XMVector4Equal(mLastCameraVPMatrix.GetW(), currentMatrix.GetW()));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -262,8 +295,6 @@ void DXRFrameworkApp::OnUpdate()
 
     float elapsedTime = static_cast<float>(mTimer.GetTotalSeconds());
     float deltaTime = static_cast<float>(mTimer.GetElapsedSeconds());
-    auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
-    auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
 
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
@@ -303,6 +334,11 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
     case VK_SPACE:
         mRaytracingEnabled ^= true;
         break;
+    case 'I':
+        mFrameAccumulationEnabled ^= true;
+        break;
+    case 'P':
+        mAnimationPaused ^= true;
     default:
         break;
     }
