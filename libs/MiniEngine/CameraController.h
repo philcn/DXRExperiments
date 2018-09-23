@@ -38,6 +38,9 @@ namespace GameCore
 
         void EnableMomentum( bool enable ) { m_Momentum = enable; }
 
+        void EnableFirstPersonMouse( bool enable );
+        bool IsFirstPersonMouseEnabled() const { return m_FirstPersonMouse; }
+
     private:
         CameraController& operator=( const CameraController& ) {return *this;}
 
@@ -66,5 +69,7 @@ namespace GameCore
         float m_LastForward;
         float m_LastStrafe;
         float m_LastAscent;
+
+        bool m_FirstPersonMouse;
     };
 }

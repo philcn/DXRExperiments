@@ -45,6 +45,7 @@ void DXRFrameworkApp::OnInit()
     mCamera.SetEyeAtUp(Math::Vector3(-0.3, 0.2, 3.0), Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
     mCamera.SetZRange(1.0f, 10000.0f);
     mCamController.reset(new GameCore::CameraController(mCamera, mCamera.GetUpVec()));
+    mCamController->EnableFirstPersonMouse(false);
 
     auto now = std::chrono::high_resolution_clock::now();
     auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
@@ -339,6 +340,9 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
         break;
     case 'P':
         mAnimationPaused ^= true;
+    case 'F':
+        mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
+        return;
     default:
         break;
     }

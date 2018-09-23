@@ -18,6 +18,7 @@ namespace GameInput
     void Initialize();
     void Shutdown();
     void Update( float frameDelta );
+    void SetCaptureMouse( bool captureMouse );
 
     enum DigitalInput
     {

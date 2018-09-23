@@ -370,6 +370,22 @@ void GameInput::Update( float frameDelta )
 
 }
 
+void GameInput::SetCaptureMouse( bool captureMouse )
+{
+    if (captureMouse) 
+    {
+        s_Mouse->Unacquire();
+        if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
+            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+    } 
+    else 
+    {
+        s_Mouse->Unacquire();
+        if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)))
+            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+    }
+}
+
 bool GameInput::IsAnyPressed( void )
 {
     return s_Buttons[0] != 0;

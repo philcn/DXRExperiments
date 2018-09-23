@@ -77,8 +77,8 @@ void CameraController::Update( float deltaTime )
     float ascent = m_StrafeSpeed * speedScale * (
         GameInput::GetTimeCorrectedAnalogInput( GameInput::kAnalogRightTrigger ) -
         GameInput::GetTimeCorrectedAnalogInput( GameInput::kAnalogLeftTrigger ) +
-        (GameInput::IsPressed( GameInput::kKey_q ) ? deltaTime : 0.0f) +
-        (GameInput::IsPressed( GameInput::kKey_e ) ? -deltaTime : 0.0f)
+        (GameInput::IsPressed( GameInput::kKey_e ) ? deltaTime : 0.0f) +
+        (GameInput::IsPressed( GameInput::kKey_q ) ? -deltaTime : 0.0f)
         );
 
     if (m_Momentum)
@@ -90,9 +90,12 @@ void CameraController::Update( float deltaTime )
         ApplyMomentum(m_LastAscent, ascent, deltaTime);
     }
 
-    // don't apply momentum to mouse inputs
-    yaw += GameInput::GetAnalogInput(GameInput::kAnalogMouseX) * m_MouseSensitivityX;
-    pitch += GameInput::GetAnalogInput(GameInput::kAnalogMouseY) * m_MouseSensitivityY;
+    if (m_FirstPersonMouse)
+    {
+        // don't apply momentum to mouse inputs
+        yaw += GameInput::GetAnalogInput(GameInput::kAnalogMouseX) * m_MouseSensitivityX;
+        pitch += GameInput::GetAnalogInput(GameInput::kAnalogMouseY) * m_MouseSensitivityY;
+    }
 
     m_CurrentPitch += pitch;
     m_CurrentPitch = XMMin( XM_PIDIV2, m_CurrentPitch);
@@ -119,4 +122,10 @@ void CameraController::ApplyMomentum( float& oldValue, float& newValue, float de
         blendedValue = Lerp(newValue, oldValue, Pow(0.8f, deltaTime * 60.0f));
     oldValue = blendedValue;
     newValue = blendedValue;
+}
+
+void CameraController::EnableFirstPersonMouse( bool enable ) 
+{ 
+    m_FirstPersonMouse = enable; 
+    GameInput::SetCaptureMouse(enable);
 }
