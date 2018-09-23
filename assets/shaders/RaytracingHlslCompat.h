@@ -70,10 +70,27 @@ struct DirectionalLightParams
     XMFLOAT4 color;
 };
 
+struct PointLightParams
+{
+    XMFLOAT4 worldPos;
+    XMFLOAT4 color;
+};
+
+struct DebugOptions
+{
+    UINT maxIterations;
+    UINT cosineHemisphereSampling;
+    UINT showIndirectLightingOnly;
+    UINT showAmbientOcclusionOnly;
+    UINT reduceSamplesPerIteration;
+};
+
 struct PerFrameConstants
 {
     CameraParams cameraParams;
     DirectionalLightParams directionalLight;
+    PointLightParams pointLight;
+    DebugOptions options;
     UINT frameCount;
     UINT accumCount;
 };

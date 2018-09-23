@@ -220,8 +220,14 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
         XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
         XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
         dirLightVector = XMVector4Transform(dirLightVector, rotation);
-        constants.directionalLight.color = XMFLOAT4(0.7f, 0.0f, 0.0f, 1.0f);
         XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
+        constants.directionalLight.color = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
+
+        XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
+        pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
+        pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
+        XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
+        constants.pointLight.color = XMFLOAT4(0.2f, 0.8f, 0.6f, 3.0f);
     }
 
     constants.options = mShaderDebugOptions;
