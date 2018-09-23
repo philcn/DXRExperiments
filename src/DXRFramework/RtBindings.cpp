@@ -46,7 +46,7 @@ namespace DXRFramework
         }
 
         mMissParams.resize(mMissProgCount);
-        for (UINT i = 0 ; i < mHitProgCount; ++i) {
+        for (UINT i = 0 ; i < mMissProgCount; ++i) {
             mMissParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getMissProgram(i);
             mMissParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
