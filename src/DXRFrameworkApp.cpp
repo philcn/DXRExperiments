@@ -299,7 +299,7 @@ void DXRFrameworkApp::DoRaytracing()
     mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight());
 }
 
-void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer()
+void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
@@ -312,7 +312,7 @@ void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer()
     commandList->CopyResource(renderTarget, mOutputResource.Get());
 
     D3D12_RESOURCE_BARRIER postCopyBarriers[2];
-    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PRESENT);
+    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, transitionToState);
     postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(mOutputResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
@@ -372,16 +372,7 @@ void DXRFrameworkApp::OnRender()
 
     if (mRaytracingEnabled) {
         DoRaytracing();
-        CopyRaytracingOutputToBackbuffer();
-
-        D3D12_RESOURCE_BARRIER barrier = {};
-        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-        barrier.Transition.pResource   = m_deviceResources->GetRenderTarget();
-        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-        commandList->ResourceBarrier(1, &barrier);
+        CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
     } else {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
@@ -400,7 +391,7 @@ void DXRFrameworkApp::OnRender()
         ui::RendererDX::Render(commandList);
     }
 
-    m_deviceResources->Present(/*mRaytracingEnabled ? D3D12_RESOURCE_STATE_PRESENT : */D3D12_RESOURCE_STATE_RENDER_TARGET);
+    m_deviceResources->Present(D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void DXRFrameworkApp::OnKeyDown(UINT8 key)

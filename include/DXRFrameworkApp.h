@@ -73,7 +73,7 @@ private:
     void DoRaytracing();
 
     void CreateRaytracingOutputBuffer();
-    void CopyRaytracingOutputToBackbuffer();
+    void CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);
 
     void CreateConstantBuffers();
     void UpdatePerFrameConstants(float elapsedTime);
