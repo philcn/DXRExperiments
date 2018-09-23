@@ -7,6 +7,7 @@
 #include "DXRFramework/RtState.h"
 #include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtScene.h"
+#include "RaytracingHlslCompat.h"
 #include "Camera.h"
 #include "CameraController.h"
 #include <vector>
@@ -33,6 +34,7 @@ private:
     bool mRaytracingEnabled;
     bool mFrameAccumulationEnabled;
     bool mAnimationPaused;
+    DebugOptions mShaderDebugOptions;
 
     ////////////////////////////////////////////////////////////////////////////////
 
@@ -76,4 +78,5 @@ private:
     void UpdatePerFrameConstants(float elapsedTime);
 
     bool HasCameraMoved();
+    void ResetAccumulation();
 };

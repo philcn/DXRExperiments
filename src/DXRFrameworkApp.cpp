@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
 #include "nv_helpers_dx12/DXRHelper.h"
-#include "RaytracingHlslCompat.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
 #include "GameInput.h"
 #include "WICTextureLoader.h"
@@ -50,6 +49,12 @@ void DXRFrameworkApp::OnInit()
     auto now = std::chrono::high_resolution_clock::now();
     auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
     mRng = std::mt19937( uint32_t(msTime.time_since_epoch().count()) );
+
+    mShaderDebugOptions.maxIterations = 1024;
+    mShaderDebugOptions.cosineHemisphereSampling = true;
+    mShaderDebugOptions.showIndirectLightingOnly = false;
+    mShaderDebugOptions.showAmbientOcclusionOnly = false;
+    mShaderDebugOptions.reduceSamplesPerIteration = true;
 
     InitRaytracing();
     BuildAccelerationStructures();
@@ -219,6 +224,7 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
         XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
     }
 
+    constants.options = mShaderDebugOptions;
     constants.frameCount = GetFrameCount();
     constants.accumCount = mAccumCount++;
 
@@ -233,6 +239,11 @@ bool DXRFrameworkApp::HasCameraMoved()
              XMVector4Equal(mLastCameraVPMatrix.GetY(), currentMatrix.GetY()) &&
              XMVector4Equal(mLastCameraVPMatrix.GetZ(), currentMatrix.GetZ()) &&
              XMVector4Equal(mLastCameraVPMatrix.GetW(), currentMatrix.GetW()));
+}
+
+void DXRFrameworkApp::ResetAccumulation()
+{
+    mLastCameraVPMatrix = Math::Matrix4();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -340,12 +351,26 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
         break;
     case 'P':
         mAnimationPaused ^= true;
+        break;
+    case 'C':
+        mShaderDebugOptions.cosineHemisphereSampling ^= true;
+        break;
+    case 'B':
+        mShaderDebugOptions.showIndirectLightingOnly ^= true;
+        break;
+    case 'O':
+        mShaderDebugOptions.showAmbientOcclusionOnly ^= true;
+        break;
+    case 'R':
+        mShaderDebugOptions.reduceSamplesPerIteration ^= true;
+        break;
     case 'F':
         mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
         return;
     default:
         break;
     }
+    ResetAccumulation();
 }
 
 void DXRFrameworkApp::OnDestroy()
