@@ -73,11 +73,12 @@ void DXRFrameworkApp::InitRaytracing()
     mRtContext = RtContext::create(device, commandList);
 
     RtProgram::Desc programDesc;
-    std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowAnyHit", L"ShadowMiss" };
+    std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
     programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
     programDesc.setRayGen("RayGen");
     programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
     programDesc.addHitGroup(1, "", "ShadowAnyHit").addMiss(1, "ShadowMiss");
+    programDesc.addMiss(2, "SecondaryMiss");
     mRtProgram = RtProgram::create(mRtContext, programDesc);
 
     mRtState = RtState::create(mRtContext); 
@@ -192,8 +193,6 @@ inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XM
     XMStoreFloat4(W, w);
 }
 
-#include <iostream>
-
 void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
 {
     if (HasCameraMoved() || !mFrameAccumulationEnabled) {
@@ -260,17 +259,18 @@ void DXRFrameworkApp::DoRaytracing()
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     mRtContext->bindDescriptorHeap();
 
-    const int numRayTypes = mRtProgram->getHitProgramCount();
-    for (int rayType = 0; rayType < numRayTypes; ++rayType) {
-        int32_t constant0 = 16;
-        mRtBindings->getMissVars(rayType)->append32BitConstants(&constant0, 1);
-        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[0]);
-        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[1]);
-
+    for (int rayType = 0; rayType < mRtProgram->getHitProgramCount(); ++rayType) {
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
             mRtBindings->getHitVars(rayType, instance)->appendDescriptor(srvWrappedPtr);
         }
+    }
+
+    for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
+        int32_t constant0 = 16;
+        mRtBindings->getMissVars(rayType)->append32BitConstants(&constant0, 1);
+        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[0]);
+        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[1]);
     }
 
     mRtBindings->apply(mRtContext, mRtState);
