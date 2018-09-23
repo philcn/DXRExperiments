@@ -40,6 +40,9 @@ public:
     virtual void OnLeftButtonUp(UINT /*x*/, UINT /*y*/) {}
     virtual void OnDisplayChanged() {}
 
+    // Override for custom window proc handling. If return 1, sample will not dispatch onKeyDown() etc.
+    virtual LRESULT WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) { return 0; }
+
     // Overridable members.
     virtual void ParseCommandLineArgs(_In_reads_(argc) WCHAR* argv[], int argc);
 

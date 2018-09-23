@@ -51,6 +51,9 @@
     <Filter Include="Libs\MiniEngine\Math">
       <UniqueIdentifier>{f2a8364f-26fb-43ba-9d45-2eb857c6ae26}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Libs\imgui">
+      <UniqueIdentifier>{19d01af3-e45e-4c3f-8e41-b4bf7db5a15f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\utils\DXSampleHelper.h">
@@ -389,6 +392,24 @@
     <ClInclude Include="..\libs\MiniEngine\CameraController.h">
       <Filter>Libs\MiniEngine</Filter>
     </ClInclude>
+    <ClInclude Include="..\libs\imgui\imgui.h">
+      <Filter>Libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\imgui\imgui_internal.h">
+      <Filter>Libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\imgui\imconfig.h">
+      <Filter>Libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\utils\ImGuiRendererDX.h">
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\imgui\imgui_impl_dx12.h">
+      <Filter>Libs\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\imgui\imgui_impl_win32.h">
+      <Filter>Libs\imgui</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -462,6 +483,27 @@
     </ClCompile>
     <ClCompile Include="..\libs\MiniEngine\CameraController.cpp">
       <Filter>Libs\MiniEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui.cpp">
+      <Filter>Libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_draw.cpp">
+      <Filter>Libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_demo.cpp">
+      <Filter>Libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_widgets.cpp">
+      <Filter>Libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\utils\ImGuiRendererDX.cpp">
+      <Filter>Source Files\Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_impl_dx12.cpp">
+      <Filter>Libs\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_impl_win32.cpp">
+      <Filter>Libs\imgui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

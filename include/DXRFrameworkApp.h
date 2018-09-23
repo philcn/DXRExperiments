@@ -25,6 +25,7 @@ public:
     virtual void OnRender();
     virtual void OnSizeChanged(UINT width, UINT height, bool minimized);
     virtual void OnDestroy();
+    virtual LRESULT WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     virtual IDXGISwapChain* GetSwapchain() { return m_deviceResources->GetSwapChain(); }
 
 private:
@@ -79,4 +80,6 @@ private:
 
     bool HasCameraMoved();
     void ResetAccumulation();
+
+    void UserInterface();
 };

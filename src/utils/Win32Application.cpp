@@ -193,6 +193,11 @@ LRESULT CALLBACK Win32Application::WindowProc(HWND hWnd, UINT message, WPARAM wP
 {
     DXSample* pSample = reinterpret_cast<DXSample*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
+    if (pSample && pSample->WindowProcHandler(hWnd, message, wParam, lParam)) 
+    {
+        return 1;
+    }
+
     switch (message)
     {
     case WM_CREATE:

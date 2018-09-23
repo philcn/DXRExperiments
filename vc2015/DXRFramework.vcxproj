@@ -62,7 +62,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\MiniEngine;$(SolutionDir)..\DirectXTK12\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\MiniEngine;$(SolutionDir)..\DirectXTK12\Inc;$(SolutionDir)libs\imgui;$(SolutionDir)libs\imgui\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -146,6 +146,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\stdafx.h" />
     <ClInclude Include="..\include\utils\DeviceResources.h" />
     <ClInclude Include="..\include\utils\DirectXRaytracingHelper.h" />
+    <ClInclude Include="..\include\utils\ImGuiRendererDX.h" />
     <ClInclude Include="..\include\utils\DXSample.h" />
     <ClInclude Include="..\include\utils\DXSampleHelper.h" />
     <ClInclude Include="..\include\utils\StepTimer.h" />
@@ -221,6 +222,24 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\libs\assimp\include\assimp\version.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\Vertex.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\XMLTools.h" />
+    <ClCompile Include="..\libs\imgui\imgui.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_demo.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_draw.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_impl_dx12.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_impl_win32.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\libs\imgui\imgui_widgets.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\libs\MiniEngine\Camera.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -237,6 +256,11 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\DXRFramework\RtParams.cpp" />
+    <ClInclude Include="..\libs\imgui\imconfig.h" />
+    <ClInclude Include="..\libs\imgui\imgui.h" />
+    <ClInclude Include="..\libs\imgui\imgui_impl_dx12.h" />
+    <ClInclude Include="..\libs\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="..\libs\imgui\imgui_internal.h" />
     <ClInclude Include="..\libs\MiniEngine\Camera.h" />
     <ClInclude Include="..\libs\MiniEngine\CameraController.h" />
     <ClInclude Include="..\libs\MiniEngine\GameInput.h" />
@@ -328,6 +352,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\utils\DeviceResources.cpp" />
+    <ClCompile Include="..\src\utils\ImGuiRendererDX.cpp" />
     <ClCompile Include="..\src\utils\DXSample.cpp" />
     <ClCompile Include="..\src\utils\Win32Application.cpp" />
   </ItemGroup>

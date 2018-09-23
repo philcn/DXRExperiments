@@ -6,16 +6,32 @@
 #include "WICTextureLoader.h"
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
+#include "ImGuiRendererDX.h"
 
 using namespace std;
 using namespace DXRFramework;
 
+namespace GameCore 
+{ 
+    extern HWND g_hWnd; 
+}
+
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     mRaytracingEnabled(true),
-    mFrameAccumulationEnabled(true),
+    mFrameAccumulationEnabled(false),
     mAnimationPaused(false)
 {
+    mShaderDebugOptions.maxIterations = 1024;
+    mShaderDebugOptions.cosineHemisphereSampling = true;
+    mShaderDebugOptions.showIndirectLightingOnly = false;
+    mShaderDebugOptions.showAmbientOcclusionOnly = false;
+    mShaderDebugOptions.reduceSamplesPerIteration = true;
+
+    auto now = std::chrono::high_resolution_clock::now();
+    auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
+    mRng = std::mt19937(uint32_t(msTime.time_since_epoch().count()));
+
     UpdateForSizeChange(width, height);
 }
 
@@ -46,21 +62,18 @@ void DXRFrameworkApp::OnInit()
     mCamController.reset(new GameCore::CameraController(mCamera, mCamera.GetUpVec()));
     mCamController->EnableFirstPersonMouse(false);
 
-    auto now = std::chrono::high_resolution_clock::now();
-    auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-    mRng = std::mt19937( uint32_t(msTime.time_since_epoch().count()) );
-
-    mShaderDebugOptions.maxIterations = 1024;
-    mShaderDebugOptions.cosineHemisphereSampling = true;
-    mShaderDebugOptions.showIndirectLightingOnly = false;
-    mShaderDebugOptions.showAmbientOcclusionOnly = false;
-    mShaderDebugOptions.reduceSamplesPerIteration = true;
-
     InitRaytracing();
     BuildAccelerationStructures();
 
     CreateRaytracingOutputBuffer();
     CreateConstantBuffers();
+
+    ui::RendererDX::Initialize(GameCore::g_hWnd, m_deviceResources->GetD3DDevice(), m_deviceResources->GetBackBufferFormat(), [&] () {
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
+        UINT heapOffset = mRtContext->allocateDescriptor(&cpuHandle);
+        D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = mRtContext->getDescriptorGPUHandle(heapOffset);
+        return std::make_pair(cpuHandle, gpuHandle);
+    }); 
 }
 
 static ComPtr<ID3D12Resource> sTextureResources[2];
@@ -305,6 +318,30 @@ void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer()
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
+void DXRFrameworkApp::UserInterface()
+{
+    bool resetAccumulation = false;
+    resetAccumulation |= ui::Checkbox("Raytracing/Rasterization", &mRaytracingEnabled);
+    resetAccumulation |= ui::Checkbox("Pause Animation", &mAnimationPaused);
+    if (ui::Checkbox("Frame Accumulation", &mFrameAccumulationEnabled)) {
+        mAnimationPaused = true;
+        resetAccumulation = true;
+    }
+
+    ui::Separator();
+
+    resetAccumulation |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
+    resetAccumulation |= ui::Checkbox("Indirect Only", (bool*)&mShaderDebugOptions.showIndirectLightingOnly);
+    resetAccumulation |= ui::Checkbox("AO Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
+    resetAccumulation |= ui::Checkbox("Reduce samples", (bool*)&mShaderDebugOptions.reduceSamplesPerIteration);
+
+    ui::Separator();
+
+    ui::Text("Press space to toggle first person camera");
+
+    if (resetAccumulation) ResetAccumulation();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void DXRFrameworkApp::OnUpdate()
@@ -318,6 +355,10 @@ void DXRFrameworkApp::OnUpdate()
     mCamController->Update(deltaTime);
 
     UpdatePerFrameConstants(elapsedTime);
+
+    // Prepare UI draw list
+    ui::RendererDX::NewFrame();
+    UserInterface();
 }
 
 void DXRFrameworkApp::OnRender()
@@ -327,60 +368,55 @@ void DXRFrameworkApp::OnRender()
     }
 
     m_deviceResources->Prepare();
+    auto commandList= m_deviceResources->GetCommandList();
 
     if (mRaytracingEnabled) {
         DoRaytracing();
         CopyRaytracingOutputToBackbuffer();
 
-        m_deviceResources->Present(D3D12_RESOURCE_STATE_PRESENT);
+        D3D12_RESOURCE_BARRIER barrier = {};
+        barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource   = m_deviceResources->GetRenderTarget();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        commandList->ResourceBarrier(1, &barrier);
     } else {
-        auto commandList= m_deviceResources->GetCommandList();
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
-
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
         commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
         // Insert rasterizeration code here
-
-        m_deviceResources->Present(D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
+
+    // Render UI
+    {
+        mRtContext->bindDescriptorHeap();
+
+        auto rtvHandle = m_deviceResources->GetRenderTargetView();
+        commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+        ui::RendererDX::Render(commandList);
+    }
+
+    m_deviceResources->Present(/*mRaytracingEnabled ? D3D12_RESOURCE_STATE_PRESENT : */D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
 void DXRFrameworkApp::OnKeyDown(UINT8 key)
 {
     switch (key) {
     case VK_SPACE:
-        mRaytracingEnabled ^= true;
-        break;
-    case 'I':
-        mFrameAccumulationEnabled ^= true;
-        break;
-    case 'P':
-        mAnimationPaused ^= true;
-        break;
-    case 'C':
-        mShaderDebugOptions.cosineHemisphereSampling ^= true;
-        break;
-    case 'B':
-        mShaderDebugOptions.showIndirectLightingOnly ^= true;
-        break;
-    case 'O':
-        mShaderDebugOptions.showAmbientOcclusionOnly ^= true;
-        break;
-    case 'R':
-        mShaderDebugOptions.reduceSamplesPerIteration ^= true;
-        break;
-    case 'F':
         mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
-        return;
+        break;
     default:
         break;
     }
-    ResetAccumulation();
 }
 
 void DXRFrameworkApp::OnDestroy()
 {
+    ui::RendererDX::Shutdown();
     GameInput::Shutdown();
 
     m_deviceResources->WaitForGpu();
@@ -397,4 +433,9 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     mOutputResource.Reset();
     CreateRaytracingOutputBuffer();
+}
+
+LRESULT DXRFrameworkApp::WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    return ui::RendererDX::WindowProcHandler(hwnd, msg, wParam, lParam);
 }
