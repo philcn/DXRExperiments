@@ -443,10 +443,11 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
 
 void DXRFrameworkApp::OnDestroy()
 {
+    m_deviceResources->WaitForGpu();
+
     ui::RendererDX::Shutdown();
     GameInput::Shutdown();
 
-    m_deviceResources->WaitForGpu();
     mOutputResource.Reset();
 }
 
