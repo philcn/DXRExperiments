@@ -253,9 +253,11 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
         XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
         constants.directionalLight.color = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
 
-        XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
-        pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
-        pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
+        // XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
+        // pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
+        // pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
+        XMVECTOR pointLightPos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+        
         XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
         constants.pointLight.color = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
     }
@@ -301,8 +303,6 @@ void DXRFrameworkApp::DoRaytracing()
     }
 
     for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
-        int32_t constant0 = 16;
-        mRtBindings->getMissVars(rayType)->append32BitConstants(&constant0, 1);
         mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[0]);
         mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[1]);
     }

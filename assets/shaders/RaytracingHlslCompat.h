@@ -100,6 +100,7 @@ struct MaterialParams
 {
     XMFLOAT4 albedo;
     XMFLOAT4 specular;
+    XMFLOAT4 emissive;
     float reflectivity;
     float roughness;
     float IoR;

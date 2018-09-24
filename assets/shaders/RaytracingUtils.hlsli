@@ -16,7 +16,8 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************************************************************/
 
-// Utility functions for our ambient occlusion shader.
+#define M_PI 3.1415927
+#define M_1_PI (1.0 / M_PI)
 
 // Generates a seed for a random number generator from 2 inputs plus a backoff
 uint initRand(uint val0, uint val1, uint backoff = 16)
@@ -94,17 +95,6 @@ float3 getUniformHemisphereSample(inout uint randSeed, float3 hitNorm)
 }
 
 // From OptiX helpers.h
-float fresnelSchlick(float cosTheta, float exponent = 5.0f, float minimum = 0.0f, float maximum = 1.0f)
-{
-    // The max doesn't seem like it should be necessary, but without it you get
-    // annoying broken pixels at the center of reflective spheres where cosTheta ~ 1.
-
-    // Clamp the result of the arithmetic due to floating point precision:
-    // the result should lie strictly within [minimum, maximum]
-    return clamp(minimum + (maximum - minimum) * pow(max(0.0f, 1.0f - cosTheta), exponent), minimum, maximum);
-}
-
-// From OptiX helpers.h
 float3 samplePhongLobe(inout uint randSeed, float3 mirrorDir, float exponent, inout float pdf, inout float brdf)
 {
     const float pi = 3.14159265f;
@@ -127,6 +117,13 @@ float3 samplePhongLobe(inout uint randSeed, float3 mirrorDir, float exponent, in
     float z = sinTheta * sin(phi);
     float y = cosTheta;
     return x * tangent + y * mirrorDir + z * bitangent;
+}
+
+// Fresnel reflectance - schlick approximation.
+float3 FresnelReflectanceSchlick(in float3 I, in float3 N, in float3 f0)
+{
+    float cosi = saturate(dot(-I, N));
+    return f0 + (1 - f0)*pow(1 - cosi, 5);
 }
 
 /**
@@ -162,4 +159,42 @@ bool refract(inout float3 r, float3 i, float3 n, float ior)
         r = normalize(eta*i - (eta * negNdotV + sqrt(k)) * nn);
         return true;
     }
+}
+
+// Load three 16 bit indices from a byte addressed buffer.
+uint3 Load3x16BitIndices(uint offsetBytes, ByteAddressBuffer Indices)
+{
+    uint3 indices;
+
+    // ByteAdressBuffer loads must be aligned at a 4 byte boundary.
+    // Since we need to read three 16 bit indices: { 0, 1, 2 } 
+    // aligned at a 4 byte boundary as: { 0 1 } { 2 0 } { 1 2 } { 0 1 } ...
+    // we will load 8 bytes (~ 4 indices { a b | c d }) to handle two possible index triplet layouts,
+    // based on first index's offsetBytes being aligned at the 4 byte boundary or not:
+    //  Aligned:     { 0 1 | 2 - }
+    //  Not aligned: { - 0 | 1 2 }
+    const uint dwordAlignedOffset = offsetBytes & ~3;
+    const uint2 four16BitIndices = Indices.Load2(dwordAlignedOffset);
+
+    // Aligned: { 0 1 | 2 - } => retrieve first three 16bit indices
+    if (dwordAlignedOffset == offsetBytes)
+    {
+        indices.x = four16BitIndices.x & 0xffff;
+        indices.y = (four16BitIndices.x >> 16) & 0xffff;
+        indices.z = four16BitIndices.y & 0xffff;
+    }
+    else // Not aligned: { - 0 | 1 2 } => retrieve last three 16bit indices
+    {
+        indices.x = (four16BitIndices.x >> 16) & 0xffff;
+        indices.y = four16BitIndices.y & 0xffff;
+        indices.z = (four16BitIndices.y >> 16) & 0xffff;
+    }
+
+    return indices;
+}
+
+// Retrieve hit world position.
+float3 HitWorldPosition()
+{
+    return WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 }

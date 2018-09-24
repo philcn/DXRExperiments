@@ -6,11 +6,11 @@
 
 #include "RaytracingUtils.hlsli"
 
-#define M_PI 3.1415927
-#define M_1_PI (1.0 / M_PI)
+#define RAY_MAX_T 1.0e+38f
+#define RAY_EPSILON 0.0001
 
-#define kRayMaxT 1.0e+38f
-#define kRayBias 0.0001
+#define MAX_RADIANCE_RAY_DEPTH 1
+#define MAX_SHADOW_RAY_DEPTH 2
 
 ////////////////////////////////////////////////////////////////////////////////
 // Global root signature
@@ -73,7 +73,7 @@ void RayGen()
     ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
     ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W).xyz;
     ray.TMin = 0;
-    ray.TMax = kRayMaxT;
+    ray.TMax = RAY_MAX_T;
 
     TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
@@ -108,8 +108,12 @@ void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float
                  vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
 }
 
-float shootShadowRay(float3 orig, float3 dir, float minT, float maxT)
+float shootShadowRay(float3 orig, float3 dir, float minT, float maxT, uint currentDepth)
 {
+    if (currentDepth >= MAX_SHADOW_RAY_DEPTH) {
+        return 1.0;
+    }
+
     RayDesc ray = { orig, minT, dir, maxT };
 
     ShadowPayload payload = { 0.0 };
@@ -118,31 +122,17 @@ float shootShadowRay(float3 orig, float3 dir, float minT, float maxT)
     return payload.lightVisibility;
 }
 
-float3 shootReflectionRay(float3 orig, float3 dir, float minT, uint currentDepth)
+float3 shootSecondaryRay(float3 orig, float3 dir, float minT, uint currentDepth)
 {
-    RayDesc ray = { orig, minT, dir, kRayMaxT };
+    if (currentDepth >= MAX_RADIANCE_RAY_DEPTH) {
+        return float3(0.0, 0.0, 0.0);
+    }
+
+    RayDesc ray = { orig, minT, dir, RAY_MAX_T };
 
     HitInfo payload;
     payload.colorAndDistance = float4(0, 0, 0, 0);
     payload.depth = currentDepth + 1;
-
-    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 0, ray, payload);
-
-    float3 reflectionColor = payload.colorAndDistance.rgb;
-
-    float hitT = payload.colorAndDistance.a;
-    float falloff = max(1, (hitT * hitT));
-
-    return hitT == -1 ? reflectionColor : reflectionColor * saturate(2.5 / falloff);
-}
-
-float3 shootSecondaryRay(float3 orig, float3 dir, float minT)
-{
-    RayDesc ray = { orig, minT, dir, 1.0e+38f };
-
-    HitInfo payload;
-    payload.colorAndDistance = float4(0, 0, 0, 0);
-    payload.depth = 1;
 
     TraceRay(SceneBVH, 0, 0xFF, 0, 0, 2, ray, payload);
     return payload.colorAndDistance.rgb;
@@ -162,12 +152,12 @@ float evaluateAO(float3 position, float3 normal)
             float3 sampleDir = getCosHemisphereSample(randSeed, normal);
             float NoL = saturate(dot(normal, sampleDir));
             float pdf = NoL / M_PI;
-            visibility += shootShadowRay(position, sampleDir, kRayBias, 10.0) * NoL / pdf;
+            visibility += shootShadowRay(position, sampleDir, RAY_EPSILON, 10.0, 1) * NoL / pdf;
         } else {
             float3 sampleDir = getUniformHemisphereSample(randSeed, normal);
             float NoL = saturate(dot(normal, sampleDir));
             float pdf = 1.0 / (2.0 * M_PI);
-            visibility += shootShadowRay(position, sampleDir, kRayBias, 10.0) * NoL / pdf;
+            visibility += shootShadowRay(position, sampleDir, RAY_EPSILON, 10.0, 1) * NoL / pdf;
         }
     }
 
@@ -179,10 +169,7 @@ float3 evaluateDirectionalLight(float3 position, float3 normal, uint currentDept
     float3 L = normalize(-directionalLight.forwardDir.xyz);
     float NoL = saturate(dot(normal, L));
 
-    float visible = 1.0;
-    if (currentDepth < 2) {
-        visible = shootShadowRay(position, L, kRayBias, kRayMaxT);
-    }
+    float visible = shootShadowRay(position, L, RAY_EPSILON, RAY_MAX_T, currentDepth);
 
     return directionalLight.color.rgb * directionalLight.color.a * NoL * visible;
 }
@@ -194,16 +181,13 @@ float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
     float3 L = normalize(lightPath);
     float NoL = saturate(dot(normal, L));
 
-    float visible = 1.0;
-    if (currentDepth < 2) {
-        visible = shootShadowRay(position, L, kRayBias, lightDistance);
-    }
+    float visible = shootShadowRay(position, L, RAY_EPSILON, lightDistance, currentDepth);
 
     float falloff = 1.0 / (2 * M_PI * lightDistance * lightDistance);
     return pointLight.color.rgb * pointLight.color.a * NoL * visible * falloff;
 }
 
-float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSeed)
+float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSeed, uint currentDepth)
 {
     float3 color = 0.0;
     const int rayCount = 2;
@@ -213,13 +197,13 @@ float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSe
             float3 sampleDir = getCosHemisphereSample(randSeed, normal);
             // float NoL = saturate(dot(normal, sampleDir));
             // float pdf = NoL / M_PI;
-            // color += shootSecondaryRay(position, sampleDir, kRayBias) * NoL / pdf; 
-            color += shootSecondaryRay(position, sampleDir, kRayBias) * M_PI; // term canceled
+            // color += shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth) * NoL / pdf; 
+            color += shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth) * M_PI; // term canceled
         } else {
             float3 sampleDir = getUniformHemisphereSample(randSeed, normal);
             float NoL = saturate(dot(normal, sampleDir));
             float pdf = 1.0 / (2.0 * M_PI); 
-            color += shootSecondaryRay(position, sampleDir, kRayBias) * NoL / pdf;
+            color += shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth) * NoL / pdf;
         }
     }
 
@@ -255,22 +239,26 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     // Calculate indirect diffuse
     float3 indirectContrib = 0.0;
     if (currentDepth < 1) {
-        indirectContrib += evaluateIndirectDiffuse(position, normal, randSeed);
+        indirectContrib += evaluateIndirectDiffuse(position, normal, randSeed, currentDepth);
     }
 
     float3 diffuseComponent = (directContrib + indirectContrib) / M_PI;
 
+    float fresnel = 0.0;
+
     // Accumulate indirect specular
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
-        if (currentDepth < 1) {
+        if (materialParams.reflectivity > 0.001) {
             float exponent = exp((1.0 - materialParams.roughness) * 10.0);
             float pdf;
             float brdf;
             float3 mirrorDir = reflect(WorldRayDirection(), normal);
             float3 sampleDir = samplePhongLobe(randSeed, mirrorDir, exponent, pdf, brdf);
-            float3 reflectionColor = shootReflectionRay(position, sampleDir, kRayBias, currentDepth);
-            specularComponent += reflectionColor * materialParams.reflectivity * brdf / pdf;
+            float3 reflectionColor = shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth);
+            specularComponent += reflectionColor * brdf / pdf;
+
+            fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular);
         }
     }
  
@@ -278,10 +266,10 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     if (currentDepth == 0 && options.showIndirectDiffuseOnly) {
         return materialParams.albedo * indirectContrib / M_PI;
     } else if (currentDepth == 0 && options.showIndirectSpecularOnly) {
-        return materialParams.specular * specularComponent;
+        return fresnel * materialParams.specular * specularComponent;
     }
 
-    return materialParams.albedo * diffuseComponent + materialParams.specular * specularComponent;
+    return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo * diffuseComponent + fresnel * materialParams.reflectivity * specularComponent;
 }
 
 // Hit group 1
@@ -292,7 +280,7 @@ void PrimaryClosestHit(inout HitInfo payload, Attributes attrib)
     float3 vertPosition, vertNormal;
     interpolateVertexAttributes(attrib.bary, vertPosition, vertNormal);
 
-    float3 hitPosition = WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
+    float3 hitPosition = HitWorldPosition();
 
     float3 color = shade(hitPosition, normalize(vertNormal), payload.depth);
     payload.colorAndDistance = float4(color, RayTCurrent());
