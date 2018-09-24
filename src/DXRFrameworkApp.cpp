@@ -27,7 +27,9 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     mShaderDebugOptions.showIndirectDiffuseOnly = false;
     mShaderDebugOptions.showIndirectSpecularOnly = false;
     mShaderDebugOptions.showAmbientOcclusionOnly = false;
+    mShaderDebugOptions.showFresnelTerm = false;
     mShaderDebugOptions.reduceSamplesPerIteration = false;
+    mShaderDebugOptions.environmentStrength = 1.0f;
 
     auto now = std::chrono::high_resolution_clock::now();
     auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
@@ -69,7 +71,7 @@ void DXRFrameworkApp::OnInit()
     CreateRaytracingOutputBuffer();
     CreateConstantBuffers();
 
-    ui::RendererDX::Initialize(GameCore::g_hWnd, m_deviceResources->GetD3DDevice(), m_deviceResources->GetBackBufferFormat(), [&] () {
+    ui::RendererDX::Initialize(GameCore::g_hWnd, m_deviceResources->GetD3DDevice(), m_deviceResources->GetBackBufferFormat(), FrameCount, [&] () {
         D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
         UINT heapOffset = mRtContext->allocateDescriptor(&cpuHandle);
         D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = mRtContext->getDescriptorGPUHandle(heapOffset);
@@ -113,14 +115,14 @@ void DXRFrameworkApp::InitRaytracing()
 
         Material material1 = {};
         material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
-        material1.params.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
         material1.params.roughness = 0.2f;
         material1.params.reflectivity = 0.75f;
         material1.params.type = 1; 
 
         Material material2 = {};
-        material2.params.albedo = XMFLOAT4(1.0f, 0.7f, 0.3f, 1.0f);
-        material2.params.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
+        material2.params.specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
         material2.params.roughness = 0.05f;
         material2.params.reflectivity = 1.0f;
         material2.params.type = 1;
@@ -298,7 +300,7 @@ void DXRFrameworkApp::DoRaytracing()
             mRtBindings->getHitVars(rayType, instance)->appendDescriptor(srvWrappedPtr);
 
             const Material &material = mMaterials[instance];
-            mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, sizeof(MaterialParams) / sizeof(int32_t));
+            mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
         }
     }
 
@@ -368,8 +370,10 @@ void DXRFrameworkApp::UserInterface()
     resetAccumulation |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
     resetAccumulation |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
     resetAccumulation |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
-    resetAccumulation |= ui::Checkbox("AO Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
+    resetAccumulation |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
+    resetAccumulation |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
     resetAccumulation |= ui::Checkbox("Reduce samples", (bool*)&mShaderDebugOptions.reduceSamplesPerIteration);
+    resetAccumulation |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.1f, 10.0f);
 
     ui::Separator();
 
@@ -433,10 +437,13 @@ void DXRFrameworkApp::OnRender()
 void DXRFrameworkApp::OnKeyDown(UINT8 key)
 {
     switch (key) {
-    case VK_SPACE:
+    case 'F':
         mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
         break;
-    default:
+    case VK_SPACE:
+        mAnimationPaused ^= true;
+        mFrameAccumulationEnabled = mAnimationPaused;
+        ResetAccumulation();
         break;
     }
 }

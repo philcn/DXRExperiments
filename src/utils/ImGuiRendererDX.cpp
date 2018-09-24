@@ -15,7 +15,7 @@ IMGUI_IMPL_API void     ImGui_ImplWin32_Shutdown();
 IMGUI_IMPL_API void     ImGui_ImplWin32_NewFrame();
 */
 
-void ImGui::RendererDX::Initialize(HWND hwnd, ID3D12Device *device, DXGI_FORMAT rtvFormat, std::function<std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE>(void)> allocator)
+void ImGui::RendererDX::Initialize(HWND hwnd, ID3D12Device *device, DXGI_FORMAT rtvFormat, UINT frameCount, std::function<std::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE>(void)> allocator)
 {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -30,7 +30,7 @@ void ImGui::RendererDX::Initialize(HWND hwnd, ID3D12Device *device, DXGI_FORMAT 
     std::tie(fontSrvDescCpuHandle, fontSrvDescGpuHandle) = allocator();
 
     ImGui_ImplWin32_Init(hwnd);
-    ImGui_ImplDX12_Init(device, 3, rtvFormat, fontSrvDescCpuHandle, fontSrvDescGpuHandle);
+    ImGui_ImplDX12_Init(device, frameCount, rtvFormat, fontSrvDescCpuHandle, fontSrvDescGpuHandle);
 }
 
 void ImGui::RendererDX::Shutdown()

@@ -83,7 +83,9 @@ struct DebugOptions
     UINT showIndirectDiffuseOnly;
     UINT showIndirectSpecularOnly;
     UINT showAmbientOcclusionOnly;
+    UINT showFresnelTerm;
     UINT reduceSamplesPerIteration;
+    float environmentStrength;
 };
 
 struct PerFrameConstants

@@ -148,17 +148,19 @@ float evaluateAO(float3 position, float3 normal)
     uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
 
     for (int i = 0; i < aoRayCount; ++i) {
+        float3 sampleDir;
+        float NoL;
+        float pdf;
         if (options.cosineHemisphereSampling) {
-            float3 sampleDir = getCosHemisphereSample(randSeed, normal);
-            float NoL = saturate(dot(normal, sampleDir));
-            float pdf = NoL / M_PI;
-            visibility += shootShadowRay(position, sampleDir, RAY_EPSILON, 10.0, 1) * NoL / pdf;
+            sampleDir = getCosHemisphereSample(randSeed, normal);
+            NoL = saturate(dot(normal, sampleDir));
+            pdf = NoL / M_PI;
         } else {
-            float3 sampleDir = getUniformHemisphereSample(randSeed, normal);
-            float NoL = saturate(dot(normal, sampleDir));
-            float pdf = 1.0 / (2.0 * M_PI);
-            visibility += shootShadowRay(position, sampleDir, RAY_EPSILON, 10.0, 1) * NoL / pdf;
+            sampleDir = getUniformHemisphereSample(randSeed, normal);
+            NoL = saturate(dot(normal, sampleDir));
+            pdf = 1.0 / (2.0 * M_PI);
         }
+        visibility += shootShadowRay(position, sampleDir, RAY_EPSILON, 10.0, 1) * NoL / pdf;
     }
 
     return visibility / float(aoRayCount);
@@ -190,7 +192,7 @@ float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
 float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSeed, uint currentDepth)
 {
     float3 color = 0.0;
-    const int rayCount = 2;
+    const int rayCount = 1;
 
     for (int i = 0; i < rayCount; ++i) {
         if (options.cosineHemisphereSampling) {
@@ -262,11 +264,15 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
         }
     }
  
-    // Debug display
-    if (currentDepth == 0 && options.showIndirectDiffuseOnly) {
-        return materialParams.albedo * indirectContrib / M_PI;
-    } else if (currentDepth == 0 && options.showIndirectSpecularOnly) {
-        return fresnel * materialParams.specular * specularComponent;
+    // Debug visualization
+    if (currentDepth == 0) {
+        if (options.showIndirectDiffuseOnly) {
+            return materialParams.albedo * indirectContrib / M_PI;
+        } else if (options.showIndirectSpecularOnly) {
+            return fresnel * materialParams.specular * specularComponent;
+        } else if (options.showFresnelTerm) {
+            return fresnel;
+        }
     }
 
     return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo * diffuseComponent + fresnel * materialParams.reflectivity * specularComponent;
@@ -280,9 +286,7 @@ void PrimaryClosestHit(inout HitInfo payload, Attributes attrib)
     float3 vertPosition, vertNormal;
     interpolateVertexAttributes(attrib.bary, vertPosition, vertNormal);
 
-    float3 hitPosition = HitWorldPosition();
-
-    float3 color = shade(hitPosition, normalize(vertNormal), payload.depth);
+    float3 color = shade(HitWorldPosition(), normalize(vertNormal), payload.depth);
     payload.colorAndDistance = float4(color, RayTCurrent());
 }
 
@@ -335,7 +339,7 @@ void SecondaryMiss(inout HitInfo payload : SV_RayPayload)
     float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
     float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
 
-    payload.colorAndDistance = float4(envSample.rgb * 4.0, -1.0);
+    payload.colorAndDistance = float4(envSample.rgb * options.environmentStrength, -1.0);
 }
 
 #endif // SHADER_LIBRARY_HLSL
