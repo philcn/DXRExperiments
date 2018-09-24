@@ -24,9 +24,10 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
 {
     mShaderDebugOptions.maxIterations = 1024;
     mShaderDebugOptions.cosineHemisphereSampling = true;
-    mShaderDebugOptions.showIndirectLightingOnly = false;
+    mShaderDebugOptions.showIndirectDiffuseOnly = false;
+    mShaderDebugOptions.showIndirectSpecularOnly = false;
     mShaderDebugOptions.showAmbientOcclusionOnly = false;
-    mShaderDebugOptions.reduceSamplesPerIteration = true;
+    mShaderDebugOptions.reduceSamplesPerIteration = false;
 
     auto now = std::chrono::high_resolution_clock::now();
     auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
@@ -109,6 +110,23 @@ void DXRFrameworkApp::InitRaytracing()
         // working directory is "vc2015"
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\cornell.obj"), identity);
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\susanne.obj"), transform);
+
+        Material material1 = {};
+        material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
+        material1.params.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        material1.params.roughness = 0.2f;
+        material1.params.reflectivity = 0.75f;
+        material1.params.type = 1; 
+
+        Material material2 = {};
+        material2.params.albedo = XMFLOAT4(1.0f, 0.7f, 0.3f, 1.0f);
+        material2.params.specular = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        material2.params.roughness = 0.05f;
+        material2.params.reflectivity = 1.0f;
+        material2.params.type = 1;
+
+        mMaterials.push_back(material1);
+        mMaterials.push_back(material2);
     }
 
     mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
@@ -239,7 +257,7 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
         pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
         pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
         XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
-        constants.pointLight.color = XMFLOAT4(0.2f, 0.8f, 0.6f, 3.0f);
+        constants.pointLight.color = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
     }
 
     constants.options = mShaderDebugOptions;
@@ -276,6 +294,9 @@ void DXRFrameworkApp::DoRaytracing()
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
             mRtBindings->getHitVars(rayType, instance)->appendDescriptor(srvWrappedPtr);
+
+            const Material &material = mMaterials[instance];
+            mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, sizeof(MaterialParams) / sizeof(int32_t));
         }
     }
 
@@ -323,15 +344,30 @@ void DXRFrameworkApp::UserInterface()
     bool resetAccumulation = false;
     resetAccumulation |= ui::Checkbox("Raytracing/Rasterization", &mRaytracingEnabled);
     resetAccumulation |= ui::Checkbox("Pause Animation", &mAnimationPaused);
+
+    ui::Separator();
+
     if (ui::Checkbox("Frame Accumulation", &mFrameAccumulationEnabled)) {
         mAnimationPaused = true;
         resetAccumulation = true;
     }
 
+    if (mFrameAccumulationEnabled) {
+        int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
+        ui::SliderInt("Iterations", &currentIterations, 0, mShaderDebugOptions.maxIterations);
+
+        int oldMaxIterations = mShaderDebugOptions.maxIterations;
+        if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
+            resetAccumulation |= (mShaderDebugOptions.maxIterations < mAccumCount);
+            mAccumCount = min(mAccumCount, oldMaxIterations);
+        }
+    }
+
     ui::Separator();
 
     resetAccumulation |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
-    resetAccumulation |= ui::Checkbox("Indirect Only", (bool*)&mShaderDebugOptions.showIndirectLightingOnly);
+    resetAccumulation |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
+    resetAccumulation |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
     resetAccumulation |= ui::Checkbox("AO Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
     resetAccumulation |= ui::Checkbox("Reduce samples", (bool*)&mShaderDebugOptions.reduceSamplesPerIteration);
 

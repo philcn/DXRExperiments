@@ -80,7 +80,8 @@ struct DebugOptions
 {
     UINT maxIterations;
     UINT cosineHemisphereSampling;
-    UINT showIndirectLightingOnly;
+    UINT showIndirectDiffuseOnly;
+    UINT showIndirectSpecularOnly;
     UINT showAmbientOcclusionOnly;
     UINT reduceSamplesPerIteration;
 };
@@ -93,6 +94,16 @@ struct PerFrameConstants
     DebugOptions options;
     UINT frameCount;
     UINT accumCount;
+};
+
+struct MaterialParams
+{
+    XMFLOAT4 albedo;
+    XMFLOAT4 specular;
+    float reflectivity;
+    float roughness;
+    float IoR;
+    UINT type; // 0: diffuse, 1: glossy, 2: specular (glass)
 };
 
 #endif // RAYTRACINGHLSLCOMPAT_H

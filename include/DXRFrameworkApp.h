@@ -65,6 +65,12 @@ private:
     DXRFramework::RtBindings::SharedPtr mRtBindings;
     DXRFramework::RtScene::SharedPtr mRtScene;
 
+    struct Material {
+        MaterialParams params;
+        // textures
+    };
+    std::vector<Material> mMaterials;
+
     ////////////////////////////////////////////////////////////////////////////////
 
     void InitRaytracing();

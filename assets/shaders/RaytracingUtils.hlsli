@@ -60,17 +60,18 @@ float3 getCosHemisphereSample(inout uint randSeed, float3 hitNorm)
     float3 bitangent = getPerpendicularVector(hitNorm);
     float3 tangent = cross(bitangent, hitNorm);
 
-    // Cosine weighted hemisphere sample from RNG
+    // Uniformly sample disk
     float r = sqrt(randVal.x);
     float phi = 2.0f * 3.14159265f * randVal.y;
 
-    // Simplified math:
-    // return tangent * (r * cos(phi).x) + bitangent * (r * sin(phi)) + hitNorm.xyz * sqrt(1 - randVal.x);
-
+    // Projecct up to hemisphere
     float x = r * cos(phi);
     float z = r * sin(phi);
-    float3 sampleDir = float3(x, sqrt(1.0 - randVal.x), z);
-    return sampleDir.x * tangent + sampleDir.y * hitNorm.xyz + sampleDir.z * bitangent;
+    float y = sqrt(1.0 - randVal.x);
+    return x * tangent + y * hitNorm.xyz + z * bitangent;
+
+    // Simplified math:
+    // return tangent * (r * cos(phi).x) + bitangent * (r * sin(phi)) + hitNorm.xyz * sqrt(1 - randVal.x);
 }
 
 // http://www.rorydriscoll.com/2009/01/07/better-sampling/
@@ -88,6 +89,77 @@ float3 getUniformHemisphereSample(inout uint randSeed, float3 hitNorm)
 
     float x = sinTheta * cos(phi);
     float z = sinTheta * sin(phi);
-    float3 sampleDir = float3(x, cosTheta, z);
-    return sampleDir.x * tangent + sampleDir.y * hitNorm.xyz + sampleDir.z * bitangent;
+    float y = cosTheta;
+    return x * tangent + y * hitNorm.xyz + z * bitangent;
+}
+
+// From OptiX helpers.h
+float fresnelSchlick(float cosTheta, float exponent = 5.0f, float minimum = 0.0f, float maximum = 1.0f)
+{
+    // The max doesn't seem like it should be necessary, but without it you get
+    // annoying broken pixels at the center of reflective spheres where cosTheta ~ 1.
+
+    // Clamp the result of the arithmetic due to floating point precision:
+    // the result should lie strictly within [minimum, maximum]
+    return clamp(minimum + (maximum - minimum) * pow(max(0.0f, 1.0f - cosTheta), exponent), minimum, maximum);
+}
+
+// From OptiX helpers.h
+float3 samplePhongLobe(inout uint randSeed, float3 mirrorDir, float exponent, inout float pdf, inout float brdf)
+{
+    const float pi = 3.14159265f;
+
+    // Get 2 random numbers to select our sample with
+    float2 randVal = float2(nextRand(randSeed), nextRand(randSeed));
+
+    float3 bitangent = getPerpendicularVector(mirrorDir);
+    float3 tangent = cross(bitangent, mirrorDir);
+
+    float cosTheta = pow(randVal.x, 1.0 / (exponent + 1.0));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+    float phi = 2.0f * pi * randVal.y;
+
+    float poweredCos = pow(cosTheta, exponent);
+    pdf = (exponent + 1.0) / (2.0 * pi) * poweredCos;
+    brdf = (exponent + 2.0) / (2.0 * pi) * poweredCos;  
+
+    float x = sinTheta * cos(phi);
+    float z = sinTheta * sin(phi);
+    float y = cosTheta;
+    return x * tangent + y * mirrorDir + z * bitangent;
+}
+
+/**
+*  Calculates refraction direction
+*  r   : refraction vector
+*  i   : incident vector
+*  n   : surface normal
+*  ior : index of refraction ( n2 / n1 )
+*  returns false in case of total internal reflection, in that case r is
+*          initialized to (0,0,0).
+*/
+bool refract(inout float3 r, float3 i, float3 n, float ior)
+{
+    float3 nn = n;
+    float negNdotV = dot(i, nn);
+    float eta;
+
+    if (negNdotV > 0.0) {
+        eta = ior;
+        nn = -n;
+        negNdotV = -negNdotV;
+    } else {
+        eta = 1.0 / ior;
+    }
+
+    const float k = 1.0 - eta * eta * (1.0 - negNdotV * negNdotV);
+
+    if (k < 0.0) {
+        // Initialize this value, so that r always leaves this function initialized.
+        r = float3(0.0, 0.0, 0.0);
+        return false;
+    } else {
+        r = normalize(eta*i - (eta * negNdotV + sqrt(k)) * nn);
+        return true;
+    }
 }

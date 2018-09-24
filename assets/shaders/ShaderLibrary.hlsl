@@ -36,16 +36,14 @@ SamplerState defaultSampler : register(s0);
 
 // StructuredBuffer<Vertex> vertexBuffer : register(t0, space1); // doesn't work in Fallback Layer
 Buffer<float3> vertexData : register(t0, space1);
+cbuffer MaterialConstants : register(b0, space1)
+{
+    MaterialParams materialParams;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Miss shader local root signature
 ////////////////////////////////////////////////////////////////////////////////
-
-// just for testing 32-bit local root parameter
-cbuffer LocalData : register(b0, space2)
-{
-    int localData;
-}
 
 Texture2D envMap : register(t0, space2);
 TextureCube radianceTexture : register(t1, space2);
@@ -205,14 +203,10 @@ float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
     return pointLight.color.rgb * pointLight.color.a * NoL * visible * falloff;
 }
 
-float3 evaluateIndirectDiffuse(float3 position, float3 normal)
+float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSeed)
 {
     float3 color = 0.0;
     const int rayCount = 2;
-
-    uint2 pixIdx = DispatchRaysIndex().xy;
-    uint2 numPix = DispatchRaysDimensions().xy;
-    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount + 123);
 
     for (int i = 0; i < rayCount; ++i) {
         if (options.cosineHemisphereSampling) {
@@ -238,18 +232,17 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
         return evaluateAO(position, normal);
     }
 
+    // Set up random seeed
+    uint2 pixIdx = DispatchRaysIndex().xy;
+    uint2 numPix = DispatchRaysDimensions().xy;
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
+
+    // Calculate direct diffuse lighting
     float3 directContrib = 0.0;
-
     if (options.reduceSamplesPerIteration) {
-        uint2 pixIdx = DispatchRaysIndex().xy;
-        uint2 numPix = DispatchRaysDimensions().xy;
-        uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
-        float rand = nextRand(randSeed);
-
         const int numLights = 2;
-
         // Select light to evaluate in this iteration
-        if (rand < 0.5) {
+        if (nextRand(randSeed) < 0.5) {
             directContrib += evaluateDirectionalLight(position, normal, currentDepth) * numLights;
         } else {
             directContrib += evaluatePointLight(position, normal, currentDepth) * numLights;
@@ -259,22 +252,36 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
         directContrib += evaluatePointLight(position, normal, currentDepth);
     }
 
+    // Calculate indirect diffuse
     float3 indirectContrib = 0.0;
     if (currentDepth < 1) {
-        // float3 reflectDir = reflect(WorldRayDirection(), normal);
-        // float3 reflectionColor = shootReflectionRay(position, reflectDir, 0.001, currentDepth);
-        // color += reflectionColor * 0.3;
-
-        indirectContrib += evaluateIndirectDiffuse(position, normal);
+        indirectContrib += evaluateIndirectDiffuse(position, normal, randSeed);
     }
 
-    const float3 albedo = float3(1.00f, 0.55f, 0.85f);
+    float3 diffuseComponent = (directContrib + indirectContrib) / M_PI;
 
-    if (currentDepth == 0 && options.showIndirectLightingOnly) {
-        return albedo * indirectContrib / M_PI;
+    // Accumulate indirect specular
+    float3 specularComponent = 0.0;
+    if (materialParams.type == 1 || materialParams.type == 2) {
+        if (currentDepth < 1) {
+            float exponent = exp((1.0 - materialParams.roughness) * 10.0);
+            float pdf;
+            float brdf;
+            float3 mirrorDir = reflect(WorldRayDirection(), normal);
+            float3 sampleDir = samplePhongLobe(randSeed, mirrorDir, exponent, pdf, brdf);
+            float3 reflectionColor = shootReflectionRay(position, sampleDir, kRayBias, currentDepth);
+            specularComponent += reflectionColor * materialParams.reflectivity * brdf / pdf;
+        }
+    }
+ 
+    // Debug display
+    if (currentDepth == 0 && options.showIndirectDiffuseOnly) {
+        return materialParams.albedo * indirectContrib / M_PI;
+    } else if (currentDepth == 0 && options.showIndirectSpecularOnly) {
+        return materialParams.specular * specularComponent;
     }
 
-    return albedo * (directContrib + indirectContrib) / M_PI;
+    return materialParams.albedo * diffuseComponent + materialParams.specular * specularComponent;
 }
 
 // Hit group 1
