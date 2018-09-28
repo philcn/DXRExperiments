@@ -35,7 +35,9 @@ SamplerState defaultSampler : register(s0);
 ////////////////////////////////////////////////////////////////////////////////
 
 // StructuredBuffer<Vertex> vertexBuffer : register(t0, space1); // doesn't work in Fallback Layer
-Buffer<float3> vertexData : register(t0, space1);
+Buffer<float3> vertexBuffer : register(t0, space1);
+ByteAddressBuffer indexBuffer : register(t1, space1);
+
 cbuffer MaterialConstants : register(b0, space1)
 {
     MaterialParams materialParams;
@@ -88,24 +90,27 @@ void RayGen()
 
 void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float3 vertNormal)
 {
-    uint vertId = 3 * PrimitiveIndex();
     float3 barycentrics = float3(1.f - bary.x - bary.y, bary.x, bary.y);
 
-    // vertPosition = vertexBuffer[vertId + 0].position * barycentrics.x +
-    //                vertexBuffer[vertId + 1].position * barycentrics.y +
-    //                vertexBuffer[vertId + 2].position * barycentrics.z;
+    // Get the base index of the triangle's first 16 bit index.
+    uint indexSizeInBytes = 4;;
+    uint indicesPerTriangle = 3;
+    uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
+    uint baseIndex = PrimitiveIndex() * triangleIndexStride;
+
+    const uint3 indices = Load3x32BitIndices(baseIndex, indexBuffer);
 
     const uint strideInFloat3s = 2;
     const uint positionOffsetInFloat3s = 0;
     const uint normalOffsetInFloat3s = 1;
 
-    vertPosition = vertexData.Load((vertId + 0) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.x +
-                   vertexData.Load((vertId + 1) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.y +
-                   vertexData.Load((vertId + 2) * strideInFloat3s + positionOffsetInFloat3s) * barycentrics.z;
+    vertPosition = vertexBuffer[indices[0] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.x +
+                   vertexBuffer[indices[1] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.y +
+                   vertexBuffer[indices[2] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.z;
  
-    vertNormal = vertexData.Load((vertId + 0) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.x +
-                 vertexData.Load((vertId + 1) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.y +
-                 vertexData.Load((vertId + 2) * strideInFloat3s + normalOffsetInFloat3s) * barycentrics.z;
+    vertNormal = vertexBuffer[indices[0] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.x +
+                 vertexBuffer[indices[1] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.y +
+                 vertexBuffer[indices[2] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.z;
 }
 
 float shootShadowRay(float3 orig, float3 dir, float minT, float maxT, uint currentDepth)

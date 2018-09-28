@@ -193,6 +193,15 @@ uint3 Load3x16BitIndices(uint offsetBytes, ByteAddressBuffer Indices)
     return indices;
 }
 
+// Load three 32 bit indices from a byte addressed buffer.
+uint3 Load3x32BitIndices(uint offsetBytes, ByteAddressBuffer Indices)
+{
+    // ByteAdressBuffer loads must be aligned at a 4 byte boundary.
+    const uint dwordAlignedOffset = offsetBytes & ~3;
+    const uint3 three32BitIndices = Indices.Load3(dwordAlignedOffset);
+    return three32BitIndices;
+}
+
 // Retrieve hit world position.
 float3 HitWorldPosition()
 {

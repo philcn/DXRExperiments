@@ -118,6 +118,7 @@ public:
                        UINT64 indexOffsetInBytes,    /// Offset of the first index in
                                                      /// the index buffer
                        uint32_t indexCount,          /// Number of indices to consider in the buffer
+                       DXGI_FORMAT indexFormat,      /// Format of indices 
                        ID3D12Resource* transformBuffer, /// Buffer containing a 4x4 transform
                                                         /// matrix in GPU memory, to be applied
                                                         /// to the vertices. This buffer cannot

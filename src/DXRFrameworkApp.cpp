@@ -296,8 +296,10 @@ void DXRFrameworkApp::DoRaytracing()
 
     for (int rayType = 0; rayType < mRtProgram->getHitProgramCount(); ++rayType) {
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
-            WRAPPED_GPU_POINTER srvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
-            mRtBindings->getHitVars(rayType, instance)->appendDescriptor(srvWrappedPtr);
+            WRAPPED_GPU_POINTER vbSrvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
+            WRAPPED_GPU_POINTER ibSrvWrappedPtr = mRtScene->getModel(instance)->getIndexBufferWrappedPtr();
+            mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
+            mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
 
             const Material &material = mMaterials[instance];
             mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));

@@ -59,7 +59,7 @@ void BottomLevelASGenerator::AddVertexBuffer(
 )
 {
   AddVertexBuffer(vertexBuffer, vertexOffsetInBytes, vertexCount, vertexSizeInBytes, nullptr, 0, 0,
-                  transformBuffer, transformOffsetInBytes, isOpaque);
+                  DXGI_FORMAT_UNKNOWN, transformBuffer, transformOffsetInBytes, isOpaque);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -81,6 +81,7 @@ void BottomLevelASGenerator::AddVertexBuffer(
                                      // describing the triangles
     UINT64 indexOffsetInBytes,       // Offset of the first index in the index buffer
     uint32_t indexCount,             // Number of indices to consider in the buffer
+    DXGI_FORMAT indexFormat,         // Format of indices 
     ID3D12Resource* transformBuffer, // Buffer containing a 4x4 transform matrix
                                      // in GPU memory, to be applied to the
                                      // vertices. This buffer cannot be nullptr
@@ -101,7 +102,7 @@ void BottomLevelASGenerator::AddVertexBuffer(
   descriptor.Triangles.VertexFormat = DXGI_FORMAT_R32G32B32_FLOAT;
   descriptor.Triangles.IndexBuffer =
       indexBuffer ? (indexBuffer->GetGPUVirtualAddress() + indexOffsetInBytes) : 0;
-  descriptor.Triangles.IndexFormat = indexBuffer ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_UNKNOWN;
+  descriptor.Triangles.IndexFormat = indexBuffer ? indexFormat : DXGI_FORMAT_UNKNOWN;
   descriptor.Triangles.IndexCount = indexCount;
   descriptor.Triangles.Transform =
       transformBuffer ? (transformBuffer->GetGPUVirtualAddress() + transformOffsetInBytes) : 0;

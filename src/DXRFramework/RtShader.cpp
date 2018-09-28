@@ -31,6 +31,7 @@ namespace DXRFramework
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1, 2); // space2 t1
         } else if (mShaderType == RtShaderType::ClosestHit) {
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 1); // space1 t0
+            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1, 1); // space1 t1
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 0, 1, SizeOfInUint32(MaterialParams)); // space1 b0
         }
 
