@@ -61,7 +61,8 @@ struct CameraParams
     XMFLOAT4 V;
     XMFLOAT4 W;
     XMFLOAT2 jitters;
-    XMFLOAT2 padding;
+    UINT frameCount;
+    UINT accumCount;
 };
 
 struct DirectionalLightParams
@@ -84,18 +85,16 @@ struct DebugOptions
     UINT showIndirectSpecularOnly;
     UINT showAmbientOcclusionOnly;
     UINT showFresnelTerm;
-    UINT reduceSamplesPerIteration;
     float environmentStrength;
+    UINT debug;
 };
 
 struct PerFrameConstants
 {
     CameraParams cameraParams;
+    DebugOptions options;
     DirectionalLightParams directionalLight;
     PointLightParams pointLight;
-    DebugOptions options;
-    UINT frameCount;
-    UINT accumCount;
 };
 
 struct MaterialParams

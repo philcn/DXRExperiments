@@ -21,11 +21,9 @@ RaytracingAccelerationStructure SceneBVH : register(t0);
 cbuffer PerFrameConstants : register(b0)
 {
     CameraParams cameraParams;
+    DebugOptions options;  
     DirectionalLightParams directionalLight;
-    PointLightParams pointLight;
-    DebugOptions options;
-    uint frameCount;
-    uint accumCount;
+    PointLightParams pointLight; 
 }
 
 SamplerState defaultSampler : register(s0);
@@ -57,7 +55,7 @@ TextureCube radianceTexture : register(t1, space2);
 [shader("raygeneration")] 
 void RayGen() 
 {
-    if (accumCount >= options.maxIterations) {
+    if (cameraParams.accumCount >= options.maxIterations) {
         return;
     }
 
@@ -81,7 +79,7 @@ void RayGen()
 
     float4 prevColor = gOutput[launchIndex];
     float4 curColor = float4(pow(payload.colorAndDistance.rgb, 1.0f / 2.2f), 1.0f);
-    gOutput[launchIndex] = (accumCount * prevColor + curColor) / (accumCount + 1);
+    gOutput[launchIndex] = (cameraParams.accumCount * prevColor + curColor) / (cameraParams.accumCount + 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -92,13 +90,9 @@ void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float
 {
     float3 barycentrics = float3(1.f - bary.x - bary.y, bary.x, bary.y);
 
-    // Get the base index of the triangle's first 16 bit index.
-    uint indexSizeInBytes = 4;;
-    uint indicesPerTriangle = 3;
-    uint triangleIndexStride = indicesPerTriangle * indexSizeInBytes;
-    uint baseIndex = PrimitiveIndex() * triangleIndexStride;
-
-    const uint3 indices = Load3x32BitIndices(baseIndex, indexBuffer);
+    uint baseIndex = PrimitiveIndex() * 3;
+    int address = baseIndex * 4;
+    const uint3 indices = Load3x32BitIndices(address, indexBuffer);
 
     const uint strideInFloat3s = 2;
     const uint positionOffsetInFloat3s = 0;
@@ -150,7 +144,7 @@ float evaluateAO(float3 position, float3 normal)
 
     uint2 pixIdx = DispatchRaysIndex().xy;
     uint2 numPix = DispatchRaysDimensions().xy;
-    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, cameraParams.frameCount);
 
     for (int i = 0; i < aoRayCount; ++i) {
         float3 sampleDir;
@@ -226,11 +220,11 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     // Set up random seeed
     uint2 pixIdx = DispatchRaysIndex().xy;
     uint2 numPix = DispatchRaysDimensions().xy;
-    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, frameCount);
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, cameraParams.frameCount);
 
     // Calculate direct diffuse lighting
     float3 directContrib = 0.0;
-    if (options.reduceSamplesPerIteration) {
+    if (options.debug == 2) {
         const int numLights = 2;
         // Select light to evaluate in this iteration
         if (nextRand(randSeed) < 0.5) {
@@ -257,7 +251,7 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
         if (materialParams.reflectivity > 0.001) {
-            float exponent = exp((1.0 - materialParams.roughness) * 10.0);
+            float exponent = exp((1.0 - materialParams.roughness) * 7.0);
             float pdf;
             float brdf;
             float3 mirrorDir = reflect(WorldRayDirection(), normal);

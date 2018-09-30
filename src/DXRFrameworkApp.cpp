@@ -28,8 +28,8 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     mShaderDebugOptions.showIndirectSpecularOnly = false;
     mShaderDebugOptions.showAmbientOcclusionOnly = false;
     mShaderDebugOptions.showFresnelTerm = false;
-    mShaderDebugOptions.reduceSamplesPerIteration = false;
     mShaderDebugOptions.environmentStrength = 1.0f;
+    mShaderDebugOptions.debug = 0;
 
     auto now = std::chrono::high_resolution_clock::now();
     auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
@@ -99,31 +99,29 @@ void DXRFrameworkApp::InitRaytracing()
 
     mRtState = RtState::create(mRtContext); 
     mRtState->setProgram(mRtProgram);
-    mRtState->setMaxTraceRecursionDepth(3); // allow primary - reflection - shadow
+    mRtState->setMaxTraceRecursionDepth(4);
 
     mRtScene = RtScene::create();
 
     // Setup scene
     {
-        const float scale = 0.3f;
-        auto transform = DirectX::XMMatrixScaling(scale, scale, scale) * DirectX::XMMatrixTranslation(0.52f, -0.23f, 0.3f);
         auto identity = DirectX::XMMatrixIdentity();
 
         // working directory is "vc2015"
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\cornell.obj"), identity);
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\susanne.obj"), transform);
+        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
+        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
 
         Material material1 = {};
         material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
         material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-        material1.params.roughness = 0.2f;
+        material1.params.roughness = 0.05f;
         material1.params.reflectivity = 0.75f;
         material1.params.type = 1; 
 
         Material material2 = {};
         material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
-        material2.params.specular = XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f);
-        material2.params.roughness = 0.05f;
+        material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
+        material2.params.roughness = 0.005f;
         material2.params.reflectivity = 1.0f;
         material2.params.type = 1;
 
@@ -145,7 +143,7 @@ void DXRFrameworkApp::InitRaytracing()
     {
         ResourceUploadBatch resourceUpload(device);
         resourceUpload.Begin();
-        ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\Mans_Outside_8k_TMap.jpg", &sTextureResources[0], true));
+        ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\HdrStudioProductNightStyx001_JPG_8K.jpg", &sTextureResources[0], true));
         ThrowIfFailed(CreateDDSTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\CathedralRadiance.dds", &sTextureResources[1]));
 
         auto uploadResourcesFinished = resourceUpload.End(m_deviceResources->GetCommandQueue());
@@ -246,6 +244,22 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
     float xJitter = (mRngDist(mRng) - 0.5f) / float(m_width);
     float yJitter = (mRngDist(mRng) - 0.5f) / float(m_height);
     constants.cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
+    constants.cameraParams.frameCount = GetFrameCount();
+    constants.cameraParams.accumCount = mAccumCount++;
+
+    constants.options = mShaderDebugOptions;
+
+    ui::Begin("Lighting");
+    {
+        static XMFLOAT4 pointLightColor = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
+        static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
+        ui::ColorPicker4("Point Light", (float*)&pointLightColor);
+        ui::ColorPicker4("Directional Light", (float*)&dirLightColor);
+
+        constants.directionalLight.color = dirLightColor;
+        constants.pointLight.color = pointLightColor;
+    }
+    ui::End();
 
     if (!mAnimationPaused) {
         // Populate lights
@@ -253,20 +267,13 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
         XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
         dirLightVector = XMVector4Transform(dirLightVector, rotation);
         XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
-        constants.directionalLight.color = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
 
         // XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
         // pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
         // pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
         XMVECTOR pointLightPos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        
         XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
-        constants.pointLight.color = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
     }
-
-    constants.options = mShaderDebugOptions;
-    constants.frameCount = GetFrameCount();
-    constants.accumCount = mAccumCount++;
 
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     memcpy((uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * frameIndex, &constants, sizeof(constants));
@@ -374,8 +381,8 @@ void DXRFrameworkApp::UserInterface()
     resetAccumulation |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
     resetAccumulation |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
     resetAccumulation |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
-    resetAccumulation |= ui::Checkbox("Reduce samples", (bool*)&mShaderDebugOptions.reduceSamplesPerIteration);
     resetAccumulation |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.1f, 10.0f);
+    resetAccumulation |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
 
     ui::Separator();
 
@@ -390,6 +397,10 @@ void DXRFrameworkApp::OnUpdate()
 {
     DXSample::OnUpdate();
 
+    // Prepare UI draw list
+    ui::RendererDX::NewFrame();
+    UserInterface();
+
     float elapsedTime = static_cast<float>(mTimer.GetTotalSeconds());
     float deltaTime = static_cast<float>(mTimer.GetElapsedSeconds());
 
@@ -397,10 +408,6 @@ void DXRFrameworkApp::OnUpdate()
     mCamController->Update(deltaTime);
 
     UpdatePerFrameConstants(elapsedTime);
-
-    // Prepare UI draw list
-    ui::RendererDX::NewFrame();
-    UserInterface();
 }
 
 void DXRFrameworkApp::OnRender()

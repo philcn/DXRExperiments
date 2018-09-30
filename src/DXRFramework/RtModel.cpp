@@ -17,7 +17,7 @@ namespace DXRFramework
 
     RtModel::RtModel(RtContext::SharedPtr context, const std::string &filePath)
     {
-        auto flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices;
+        auto flags = aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices | aiProcess_PreTransformVertices;
         const aiScene *scene = aiImportFile(filePath.c_str(), flags);
 
         std::vector<Vertex> interleavedVertexData;
@@ -56,8 +56,12 @@ namespace DXRFramework
                 { { 0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f } },
                 { { -0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f } }
             };
+            indices = { 0, 2, 1 };
+            mNumTriangles = 1;
             mNumVertices = interleavedVertexData.size();
         }
+
+        mHasIndexBuffer = indices.size() > 0;
 
         auto device = context->getDevice();
         // Note: using upload heaps to transfer static data like vert buffers is not 
@@ -66,7 +70,7 @@ namespace DXRFramework
         // code simplicity and because there are very few verts to actually transfer.
         AllocateUploadBuffer(device, interleavedVertexData.data(), mNumVertices * sizeof(Vertex), &mVertexBuffer);
 
-        if (indices.size() > 0) {
+        if (mHasIndexBuffer) {
             AllocateUploadBuffer(device, indices.data(), indices.size() * sizeof(uint32_t), &mIndexBuffer);
         }
     }
@@ -83,7 +87,7 @@ namespace DXRFramework
         nv_helpers_dx12::BottomLevelASGenerator blasGenerator;
 
         // Just one vertex buffer per blas for now
-        if (mIndexBuffer) {
+        if (mHasIndexBuffer) {
             blasGenerator.AddVertexBuffer(mVertexBuffer.Get(), 0, mNumVertices, sizeof(Vertex), 
                 mIndexBuffer.Get(), 0, mNumTriangles * 3, DXGI_FORMAT_R32_UINT, nullptr, 0);
         } else {

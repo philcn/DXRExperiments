@@ -23,6 +23,7 @@ namespace DXRFramework
 
         void build(RtContext::SharedPtr context);
 
+        bool mHasIndexBuffer;
         UINT mNumVertices;
         UINT mNumTriangles;
 
