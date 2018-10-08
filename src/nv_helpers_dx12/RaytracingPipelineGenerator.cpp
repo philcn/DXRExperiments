@@ -159,10 +159,9 @@ ID3D12StateObject* RayTracingPipelineGenerator::Generate(ID3D12RootSignature* gl
       m_libraries.size() +                     // DXIL libraries
       m_hitGroups.size() +                     // Hit group declarations
       1 +                                      // Shader configuration
-      1 +                                      // Shader payload
       2 * m_rootSignatureAssociations.size() + // Root signature declaration + association
-      2 +                                      // Empty global and local root signatures
-      1;                                       // Final pipeline subobject
+      1 +                                      // Global root signature
+      1;                                       // Pipeline configuration
 
   // Initialize a vector with the target object count. It is necessary to make the allocation before
   // adding subobjects as some subobjects reference other subobjects by pointer. Using push_back may
@@ -202,34 +201,6 @@ ID3D12StateObject* RayTracingPipelineGenerator::Generate(ID3D12RootSignature* gl
 
   subobjects[currentIndex++] = shaderConfigObject;
 
-  // Build a list of all the symbols for ray generation, miss and hit groups
-  // Those shaders have to be associated with the payload definition
-  std::vector<std::wstring> exportedSymbols = {};
-  std::vector<LPCWSTR> exportedSymbolPointers = {};
-  BuildShaderExportList(exportedSymbols);
-
-  // Build an array of the string pointers
-  exportedSymbolPointers.reserve(exportedSymbols.size());
-  for (const auto& name : exportedSymbols)
-  {
-    exportedSymbolPointers.push_back(name.c_str());
-  }
-  const WCHAR** shaderExports = exportedSymbolPointers.data();
-
-  // Add a subobject for the association between shaders and the payload
-  D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION shaderPayloadAssociation = {};
-  shaderPayloadAssociation.NumExports = static_cast<UINT>(exportedSymbols.size());
-  shaderPayloadAssociation.pExports = shaderExports;
-
-  // Associate the set of shaders with the payload defined in the previous subobject
-  shaderPayloadAssociation.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
-
-  // Create and store the payload association object
-  D3D12_STATE_SUBOBJECT shaderPayloadAssociationObject = {};
-  shaderPayloadAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-  shaderPayloadAssociationObject.pDesc = &shaderPayloadAssociation;
-  subobjects[currentIndex++] = shaderPayloadAssociationObject;
-
   // The root signature association requires two objects for each: one to declare the root
   // signature, and another to associate that root signature to a set of symbols
   for (RootSignatureAssociation& assoc : m_rootSignatureAssociations)
@@ -262,13 +233,6 @@ ID3D12StateObject* RayTracingPipelineGenerator::Generate(ID3D12RootSignature* gl
   globalRootSig.pDesc = &dgSig;
 
   subobjects[currentIndex++] = globalRootSig;
-
-  // The pipeline construction always requires an empty local root signature
-  D3D12_STATE_SUBOBJECT dummyLocalRootSig;
-  dummyLocalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-  ID3D12RootSignature* dlSig = m_dummyLocalRootSignature;
-  dummyLocalRootSig.pDesc = &dlSig;
-  subobjects[currentIndex++] = dummyLocalRootSig;
 
   // Add a subobject for the ray tracing pipeline configuration
   D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
@@ -307,10 +271,9 @@ ID3D12RaytracingFallbackStateObject* RayTracingPipelineGenerator::FallbackGenera
       m_libraries.size() +                     // DXIL libraries
       m_hitGroups.size() +                     // Hit group declarations
       1 +                                      // Shader configuration
-      1 +                                      // Shader payload
       2 * m_rootSignatureAssociations.size() + // Root signature declaration + association
-      2 +                                      // Empty global and local root signatures
-      1;                                       // Final pipeline subobject
+      1 +                                      // Global root signature
+      1;                                       // Pipeline configuration
 
   // Initialize a vector with the target object count. It is necessary to make the allocation before
   // adding subobjects as some subobjects reference other subobjects by pointer. Using push_back may
@@ -350,34 +313,6 @@ ID3D12RaytracingFallbackStateObject* RayTracingPipelineGenerator::FallbackGenera
 
   subobjects[currentIndex++] = shaderConfigObject;
 
-  // Build a list of all the symbols for ray generation, miss and hit groups
-  // Those shaders have to be associated with the payload definition
-  std::vector<std::wstring> exportedSymbols = {};
-  std::vector<LPCWSTR> exportedSymbolPointers = {};
-  BuildShaderExportList(exportedSymbols);
-
-  // Build an array of the string pointers
-  exportedSymbolPointers.reserve(exportedSymbols.size());
-  for (const auto& name : exportedSymbols)
-  {
-    exportedSymbolPointers.push_back(name.c_str());
-  }
-  const WCHAR** shaderExports = exportedSymbolPointers.data();
-
-  // Add a subobject for the association between shaders and the payload
-  D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION shaderPayloadAssociation = {};
-  shaderPayloadAssociation.NumExports = static_cast<UINT>(exportedSymbols.size());
-  shaderPayloadAssociation.pExports = shaderExports;
-
-  // Associate the set of shaders with the payload defined in the previous subobject
-  shaderPayloadAssociation.pSubobjectToAssociate = &subobjects[(currentIndex - 1)];
-
-  // Create and store the payload association object
-  D3D12_STATE_SUBOBJECT shaderPayloadAssociationObject = {};
-  shaderPayloadAssociationObject.Type = D3D12_STATE_SUBOBJECT_TYPE_SUBOBJECT_TO_EXPORTS_ASSOCIATION;
-  shaderPayloadAssociationObject.pDesc = &shaderPayloadAssociation;
-  subobjects[currentIndex++] = shaderPayloadAssociationObject;
-
   // The root signature association requires two objects for each: one to declare the root
   // signature, and another to associate that root signature to a set of symbols
   for (RootSignatureAssociation& assoc : m_rootSignatureAssociations)
@@ -410,13 +345,6 @@ ID3D12RaytracingFallbackStateObject* RayTracingPipelineGenerator::FallbackGenera
   globalRootSig.pDesc = &dgSig;
 
   subobjects[currentIndex++] = globalRootSig;
-
-  // The pipeline construction always requires an empty local root signature
-  D3D12_STATE_SUBOBJECT dummyLocalRootSig;
-  dummyLocalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-  ID3D12RootSignature* dlSig = m_dummyLocalRootSignature;
-  dummyLocalRootSig.pDesc = &dlSig;
-  subobjects[currentIndex++] = dummyLocalRootSig;
 
   // Add a subobject for the ray tracing pipeline configuration
   D3D12_RAYTRACING_PIPELINE_CONFIG pipelineConfig = {};
