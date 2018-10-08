@@ -275,6 +275,7 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
             float3 reflectionColor = shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth);
             specularComponent += reflectionColor * brdf / pdf;
 
+            // Equivalent to: fresnel = FresnelReflectanceSchlick(-V, H, materialParams.specular);
             fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular);
         }
     }

@@ -77,7 +77,7 @@ class RayTracingPipelineGenerator
 public:
   /// The pipeline helper requires access to the device, as well as the
   /// raytracing device prior to Windows 10 RS5.
-  RayTracingPipelineGenerator(ID3D12Device* device, ID3D12Device5* rtDevice);
+  RayTracingPipelineGenerator(ID3D12Device5* device);
 
   /// Fallback layer implementation
   RayTracingPipelineGenerator(ID3D12Device* device, ID3D12RaytracingFallbackDevice* fallbackDevice);
@@ -200,12 +200,10 @@ private:
   /// Maximum recursion depth, initialized to 1 to at least allow tracing primary rays
   UINT m_maxRecursionDepth = 1;
 
-  ID3D12Device* m_device;
-  ID3D12RootSignature* m_dummyLocalRootSignature;
   ID3D12RootSignature* m_dummyGlobalRootSignature;
 
+  ID3D12Device* m_device;
   ID3D12Device5* m_rtDevice;
-
   ID3D12RaytracingFallbackDevice* m_fallbackDevice;
 };
 

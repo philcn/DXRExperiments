@@ -50,11 +50,10 @@ namespace nv_helpers_dx12
 //--------------------------------------------------------------------------------------------------
 // The pipeline helper requires access to the device, as well as the
 // raytracing device prior to Windows 10 RS5.
-RayTracingPipelineGenerator::RayTracingPipelineGenerator(ID3D12Device* device,
-                                                         ID3D12Device5* rtDevice)
-    : m_device(device), m_rtDevice(rtDevice)
+RayTracingPipelineGenerator::RayTracingPipelineGenerator(ID3D12Device5* device)
+    : m_device(device), m_rtDevice(device)
 {
-  // The pipeline creation requires having at least one empty global and local root signatures, so
+  // The pipeline creation requires having at least one empty global root signature, so
   // we systematically create both, as this does not incur any overhead
   CreateDummyRootSignatures();
 }
@@ -64,7 +63,7 @@ RayTracingPipelineGenerator::RayTracingPipelineGenerator(ID3D12Device* device,
                                                          ID3D12RaytracingFallbackDevice* fallbackDevice)
     : m_device(device), m_fallbackDevice(fallbackDevice)
 {
-  // The pipeline creation requires having at least one empty global and local root signatures, so
+  // The pipeline creation requires having at least one empty global signature, so
   // we systematically create both, as this does not incur any overhead
   FallbackCreateDummyRootSignatures();
 }
@@ -409,24 +408,6 @@ void RayTracingPipelineGenerator::CreateDummyRootSignatures()
   {
     throw std::logic_error("Could not create the global root signature");
   }
-
-  // Create the local root signature, reusing the same descriptor but altering the creation flag
-  rootDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
-  hr = D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-                                   &serializedRootSignature, &error);
-  if (FAILED(hr))
-  {
-    throw std::logic_error("Could not serialize the local root signature");
-  }
-  hr = m_device->CreateRootSignature(0, serializedRootSignature->GetBufferPointer(),
-                                     serializedRootSignature->GetBufferSize(),
-                                     IID_PPV_ARGS(&m_dummyLocalRootSignature));
-
-  serializedRootSignature->Release();
-  if (FAILED(hr))
-  {
-    throw std::logic_error("Could not create the local root signature");
-  }
 }
 
 // Fallback layer implementation
@@ -459,24 +440,6 @@ void RayTracingPipelineGenerator::FallbackCreateDummyRootSignatures()
   if (FAILED(hr))
   {
     throw std::logic_error("Could not create the global root signature");
-  }
-
-  // Create the local root signature, reusing the same descriptor but altering the creation flag
-  rootDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
-  hr = m_fallbackDevice->D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-                                                     &serializedRootSignature, &error);
-  if (FAILED(hr))
-  {
-    throw std::logic_error("Could not serialize the local root signature");
-  }
-  hr = m_fallbackDevice->CreateRootSignature(0, serializedRootSignature->GetBufferPointer(),
-                                             serializedRootSignature->GetBufferSize(),
-                                             IID_PPV_ARGS(&m_dummyLocalRootSignature));
-
-  serializedRootSignature->Release();
-  if (FAILED(hr))
-  {
-    throw std::logic_error("Could not create the local root signature");
   }
 }
 

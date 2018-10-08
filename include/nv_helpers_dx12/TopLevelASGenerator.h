@@ -135,10 +135,7 @@ public:
   /// can be done in place: the result and previousResult pointers can be the
   /// same.
   void Generate(
-      ID3D12GraphicsCommandList* commandList, /// Command list on which the build will be enqueued
-      ID3D12GraphicsCommandList4*
-          rtCmdList,                     /// Same command list, casted into a raytracing list. This
-                                         /// will not be needed anymore with Windows 10 RS5.
+      ID3D12GraphicsCommandList4* commandList, /// Command list on which the build will be enqueued
       ID3D12Resource* scratchBuffer,     /// Scratch buffer used by the builder to
                                          /// store temporary data
       ID3D12Resource* resultBuffer,      /// Result buffer storing the acceleration structure
@@ -152,9 +149,7 @@ public:
   /// Fallback layer implementation
   void Generate(
       ID3D12GraphicsCommandList* commandList, /// Command list on which the build will be enqueued
-      ID3D12RaytracingFallbackCommandList*
-          rtCmdList,                     /// Same command list, casted into a raytracing list. This
-                                         /// will not be needed anymore with Windows 10 RS5.
+      ID3D12RaytracingFallbackCommandList* fallbackCmdList,
       ID3D12Resource* scratchBuffer,     /// Scratch buffer used by the builder to
                                          /// store temporary data
       ID3D12Resource* resultBuffer,      /// Result buffer storing the acceleration structure
