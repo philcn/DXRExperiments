@@ -31,7 +31,7 @@ public:
 private:
     static const UINT FrameCount = 3;
 
-    bool mUseDXRDriver;
+    bool mNativeDxrSupported;
     bool mRaytracingEnabled;
     bool mFrameAccumulationEnabled;
     bool mAnimationPaused;

@@ -77,10 +77,10 @@ void ShaderBindingTableGenerator::AddHitGroup(const std::wstring& entryPoint,
 //--------------------------------------------------------------------------------------------------
 //
 // Compute the size of the SBT based on the set of programs and hit groups it contains
-uint32_t ShaderBindingTableGenerator::ComputeSBTSize(ID3D12DeviceRaytracingPrototype* rtDevice)
+uint32_t ShaderBindingTableGenerator::ComputeSBTSize(ID3D12Device* rtDevice)
 {
   // Size of a program identifier
-  m_progIdSize = rtDevice->GetShaderIdentifierSize();
+  m_progIdSize = 32;// rtDevice->GetShaderIdentifierSize();
 
   // Compute the entry size of each program type depending on the maximum number of parameters in
   // each category
@@ -124,7 +124,7 @@ uint32_t ShaderBindingTableGenerator::ComputeSBTSize(ID3D12RaytracingFallbackDev
 // Access to the raytracing pipeline object is required to fetch program identifiers using their
 // names
 void ShaderBindingTableGenerator::Generate(ID3D12Resource* sbtBuffer,
-                                           ID3D12StateObjectPropertiesPrototype* raytracingPipeline)
+    ID3D12StateObject* raytracingPipeline)
 {
   // Map the SBT
   uint8_t* pData;
@@ -250,14 +250,19 @@ UINT ShaderBindingTableGenerator::GetHitGroupEntrySize() const
 // constants in outputData, with a stride in bytes of entrySize, and returns the size in bytes
 // actually written to outputData.
 uint32_t ShaderBindingTableGenerator::CopyShaderData(
-    ID3D12StateObjectPropertiesPrototype* raytracingPipeline, uint8_t* outputData,
+    ID3D12StateObject* raytracingPipeline, uint8_t* outputData,
     const std::vector<SBTEntry>& shaders, uint32_t entrySize)
 {
   uint8_t* pData = outputData;
   for (const auto& shader : shaders)
   {
     // Get the shader identifier, and check whether that identifier is known
-    void* id = raytracingPipeline->GetShaderIdentifier(shader.m_entryPoint.c_str());
+    ID3D12StateObjectProperties* stateObjectProps = nullptr;
+    if (!SUCCEEDED(raytracingPipeline->QueryInterface(__uuidof(ID3D12StateObjectProperties), (void **)&stateObjectProps))) {
+      throw new std::runtime_error("QueryInterface failed for ID3D12StateObjectProperties");
+    }
+
+    void* id = stateObjectProps->GetShaderIdentifier(shader.m_entryPoint.c_str());
     if (!id)
     {
       std::wstring errMsg(std::wstring(L"Unknown shader identifier used in the SBT: ") +

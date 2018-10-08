@@ -1,7 +1,6 @@
 #pragma once
 #include "RtContext.h"
 #include "RtShader.h"
-#include "d3d12_1.h"
 #include "dxcapi.h"
 #include <vector>
 

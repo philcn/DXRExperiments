@@ -53,7 +53,8 @@ void DXRFrameworkApp::OnInit()
     m_deviceResources->RegisterDeviceNotify(this);
     m_deviceResources->SetWindow(Win32Application::GetHwnd(), m_width, m_height);
     m_deviceResources->InitializeDXGIAdapter();
-    mUseDXRDriver = EnableDXRExperimentalFeatures(m_deviceResources->GetAdapter());
+    mNativeDxrSupported = IsDirectXRaytracingSupported(m_deviceResources->GetAdapter());
+    ThrowIfFalse(EnableComputeRaytracingFallback(m_deviceResources->GetAdapter()));
 
     m_deviceResources->CreateDeviceResources();
     m_deviceResources->CreateWindowSizeDependentResources();
@@ -86,14 +87,14 @@ void DXRFrameworkApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
-    mRtContext = RtContext::create(device, commandList);
+    mRtContext = RtContext::create(device, commandList, true);
 
     RtProgram::Desc programDesc;
-    std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
+    std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
     programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
     programDesc.setRayGen("RayGen");
     programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
-    programDesc.addHitGroup(1, "", "ShadowAnyHit").addMiss(1, "ShadowMiss");
+    programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
     programDesc.addMiss(2, "SecondaryMiss");
     mRtProgram = RtProgram::create(mRtContext, programDesc);
 
@@ -295,6 +296,8 @@ void DXRFrameworkApp::ResetAccumulation()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+bool useRootDescriptorForHitGroupBuffers = true;
+
 void DXRFrameworkApp::DoRaytracing()
 {
     auto commandList = m_deviceResources->GetCommandList();
@@ -305,8 +308,13 @@ void DXRFrameworkApp::DoRaytracing()
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             WRAPPED_GPU_POINTER vbSrvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
             WRAPPED_GPU_POINTER ibSrvWrappedPtr = mRtScene->getModel(instance)->getIndexBufferWrappedPtr();
-            mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
-            mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
+            if (useRootDescriptorForHitGroupBuffers) {
+                mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
+                mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
+            } else {
+                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&vbSrvWrappedPtr));
+                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&ibSrvWrappedPtr));
+            }
 
             const Material &material = mMaterials[instance];
             mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
@@ -314,8 +322,8 @@ void DXRFrameworkApp::DoRaytracing()
     }
 
     for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
-        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[0]);
-        mRtBindings->getMissVars(rayType)->appendDescriptor(sTextureHandle[1]);
+        mRtBindings->getMissVars(rayType)->appendHeapRanges(*reinterpret_cast<UINT64*>(&sTextureHandle[0]));
+        mRtBindings->getMissVars(rayType)->appendHeapRanges(*reinterpret_cast<UINT64*>(&sTextureHandle[1]));
     }
 
     mRtBindings->apply(mRtContext, mRtState);

@@ -29,7 +29,7 @@ namespace DXRFramework
         mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
 
         // Find the max root-signature size, create params with root signatures and reserve space
-        uint32_t maxRootSigSize = 4 /* padding */ + sizeof(UINT64) * 2 + sizeof(MaterialParams); // TEMP
+        uint32_t maxRootSigSize = sizeof(UINT64) * 2 + sizeof(MaterialParams); // TEMP
 
         mRayGenParams = RtParams::create(mProgramIdentifierSize); // mProgram->getRayGenProgram();
         mRayGenParams->allocateStorage(maxRootSigSize);

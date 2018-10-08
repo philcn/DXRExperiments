@@ -32,8 +32,14 @@ SamplerState defaultSampler : register(s0);
 // Hit-group local root signature
 ////////////////////////////////////////////////////////////////////////////////
 
-// StructuredBuffer<Vertex> vertexBuffer : register(t0, space1); // doesn't work in Fallback Layer
+// StructuredBuffer indexing is not supported in compute path of Fallback Layer
+#define USE_STRUCTURED_VERTEX_BUFFER 0
+#if USE_STRUCTURED_VERTEX_BUFFER
+StructuredBuffer<Vertex> vertexBuffer : register(t0, space1);
+#else
 Buffer<float3> vertexBuffer : register(t0, space1);
+#endif
+
 ByteAddressBuffer indexBuffer : register(t1, space1);
 
 cbuffer MaterialConstants : register(b0, space1)
@@ -98,6 +104,15 @@ void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float
     const uint positionOffsetInFloat3s = 0;
     const uint normalOffsetInFloat3s = 1;
 
+#if USE_STRUCTURED_VERTEX_BUFFER
+    vertPosition = vertexBuffer[indices[0]].position * barycentrics.x +
+                   vertexBuffer[indices[1]].position * barycentrics.y +
+                   vertexBuffer[indices[2]].position * barycentrics.z;
+
+    vertNormal = vertexBuffer[indices[0]].normal * barycentrics.x +
+                 vertexBuffer[indices[1]].normal * barycentrics.y +
+                 vertexBuffer[indices[2]].normal * barycentrics.z;
+#else
     vertPosition = vertexBuffer[indices[0] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.x +
                    vertexBuffer[indices[1] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.y +
                    vertexBuffer[indices[2] * strideInFloat3s + positionOffsetInFloat3s] * barycentrics.z;
@@ -105,6 +120,7 @@ void interpolateVertexAttributes(float2 bary, out float3 vertPosition, out float
     vertNormal = vertexBuffer[indices[0] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.x +
                  vertexBuffer[indices[1] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.y +
                  vertexBuffer[indices[2] * strideInFloat3s + normalOffsetInFloat3s] * barycentrics.z;
+#endif
 }
 
 float shootShadowRay(float3 orig, float3 dir, float minT, float maxT, uint currentDepth)
@@ -290,6 +306,12 @@ void PrimaryClosestHit(inout HitInfo payload, Attributes attrib)
 }
 
 // Hit group 2
+
+[shader("closesthit")]
+void ShadowClosestHit(inout ShadowPayload payload, Attributes attrib)
+{
+    // no-op
+}
 
 [shader("anyhit")]
 void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)

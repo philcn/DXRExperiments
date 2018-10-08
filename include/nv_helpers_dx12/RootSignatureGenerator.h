@@ -53,7 +53,6 @@ return rsc.Generate(m_device.Get(), true);
 #pragma once
 
 #include "d3d12.h"
-#include "d3d12_1.h"
 #include "D3D12RaytracingFallback.h"
 #include <tuple>
 #include <vector>

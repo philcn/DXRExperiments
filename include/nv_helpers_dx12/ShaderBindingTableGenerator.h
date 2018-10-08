@@ -108,7 +108,6 @@ desc.HitGroupTable.StrideInBytes = m_sbtHelper.GetHitGroupEntrySize();
 #pragma once
 
 #include "d3d12.h"
-#include "d3d12_1.h"
 #include "D3D12RaytracingFallback.h"
 
 #include <vector>
@@ -132,7 +131,7 @@ public:
   void AddHitGroup(const std::wstring& entryPoint, const std::vector<void*>& inputData);
 
   /// Compute the size of the SBT based on the set of programs and hit groups it contains
-  uint32_t ComputeSBTSize(ID3D12DeviceRaytracingPrototype* rtDevice);
+  uint32_t ComputeSBTSize(ID3D12Device* rtDevice);
 
   /// Fallback layer implementation
   uint32_t ComputeSBTSize(ID3D12RaytracingFallbackDevice* fallbackDevice);
@@ -141,7 +140,7 @@ public:
   /// Access to the raytracing pipeline object is required to fetch program identifiers using their
   /// names
   void Generate(ID3D12Resource* sbtBuffer,
-                ID3D12StateObjectPropertiesPrototype* raytracingPipeline);
+                ID3D12StateObject* raytracingPipeline);
 
   /// Fallback layer implementation
   void Generate(ID3D12Resource* sbtBuffer,
@@ -182,7 +181,7 @@ private:
   /// For each entry, copy the shader identifier followed by its resource pointers and/or root
   /// constants in outputData, with a stride in bytes of entrySize, and returns the size in bytes
   /// actually written to outputData.
-  uint32_t CopyShaderData(ID3D12StateObjectPropertiesPrototype* raytracingPipeline,
+  uint32_t CopyShaderData(ID3D12StateObject* raytracingPipeline,
                           uint8_t* outputData, const std::vector<SBTEntry>& shaders,
                           uint32_t entrySize);
 

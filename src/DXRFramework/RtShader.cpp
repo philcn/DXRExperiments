@@ -4,6 +4,8 @@
 #include "DirectXRaytracingHelper.h"
 #include "RaytracingHlslCompat.h"
 
+extern bool useRootDescriptorForHitGroupBuffers;
+
 namespace DXRFramework
 {
     RtShader::SharedPtr RtShader::create(RtContext::SharedPtr context, RtShaderType shaderType, const std::string &entryPoint, uint32_t maxPayloadSize, uint32_t maxAttributesSize)
@@ -27,11 +29,16 @@ namespace DXRFramework
         nv_helpers_dx12::RootSignatureGenerator rootSigGenerator;
 
         if (mShaderType == RtShaderType::Miss) {
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 2); // space2 t0
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1, 2); // space2 t1
+            rootSigGenerator.AddHeapRangesParameter({{0 /* t0 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            rootSigGenerator.AddHeapRangesParameter({{1 /* t1 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
         } else if (mShaderType == RtShaderType::ClosestHit) {
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 1); // space1 t0
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1, 1); // space1 t1
+            if (useRootDescriptorForHitGroupBuffers) {
+                rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0, 1); // space1 t0
+                rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 1, 1); // space1 t1
+            } else {
+                rootSigGenerator.AddHeapRangesParameter({{0 /* t0 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+                rootSigGenerator.AddHeapRangesParameter({{1 /* t1 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            }
             rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 0, 1, SizeOfInUint32(MaterialParams)); // space1 b0
         }
 

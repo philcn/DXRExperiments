@@ -37,10 +37,10 @@
 #include <assert.h>
 
 #include <dxgi1_6.h>
-#include "d3d12_1.h"
+#include "d3d12.h"
 #include <atlbase.h>
 #include "D3D12RaytracingFallback.h"
-#include "D3D12RaytracingPrototypeHelpers.hpp"
+#include "D3D12RaytracingHelpers.hpp"
 #include "d3dx12.h"
 
 #include <DirectXMath.h>

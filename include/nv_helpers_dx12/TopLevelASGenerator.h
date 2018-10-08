@@ -69,7 +69,6 @@ return buffers;
 #pragma once
 
 #include "d3d12.h"
-#include "d3d12_1.h"
 #include <DirectXMath.h>
 #include "D3D12RaytracingFallback.h"
 
@@ -104,7 +103,7 @@ public:
   /// structure, as well as the size of the resulting structure. The allocation
   /// of the buffers is then left to the application
   void ComputeASBufferSizes(
-      ID3D12DeviceRaytracingPrototype* device, /// Device on which the build will be performed
+      ID3D12Device5* device, /// Device on which the build will be performed
       bool allowUpdate,              /// If true, the resulting acceleration structure will
                                      /// allow iterative updates
       UINT64* scratchSizeInBytes,    /// Required scratch memory on the GPU to
@@ -137,7 +136,7 @@ public:
   /// same.
   void Generate(
       ID3D12GraphicsCommandList* commandList, /// Command list on which the build will be enqueued
-      ID3D12CommandListRaytracingPrototype*
+      ID3D12GraphicsCommandList4*
           rtCmdList,                     /// Same command list, casted into a raytracing list. This
                                          /// will not be needed anymore with Windows 10 RS5.
       ID3D12Resource* scratchBuffer,     /// Scratch buffer used by the builder to

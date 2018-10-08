@@ -10,7 +10,7 @@ namespace DXRFramework
     public:
         using SharedPtr = std::shared_ptr<RtContext>;
 
-        static SharedPtr create(ID3D12Device *device, ID3D12GraphicsCommandList *commandList);
+        static SharedPtr create(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback);
         ~RtContext();
 
         ID3D12Device *getDevice() const { return mDevice; }
@@ -35,7 +35,7 @@ namespace DXRFramework
         WRAPPED_GPU_POINTER createTextureSRVWrappedPointer(ID3D12Resource* resource);
 
     private:
-        RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList);
+        RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback);
 
         ID3D12Device *mDevice;
         ID3D12GraphicsCommandList *mCommandList;

@@ -507,16 +507,16 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="..\assets\shaders\ShaderLibrary.hlsl">
-      <Filter>Assets\Shaders</Filter>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="..\assets\shaders\RaytracingUtils.hlsli">
       <Filter>Assets\Shaders</Filter>
     </None>
     <None Include="..\libs\MiniEngine\Math\Functions.inl">
       <Filter>Libs\MiniEngine\Math</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\assets\shaders\ShaderLibrary.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

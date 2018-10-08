@@ -62,7 +62,6 @@ rtStateObject = pipeline.Generate();
 #pragma once
 
 #include "d3d12.h"
-#include "d3d12_1.h"
 #include "dxcapi.h"
 #include "D3D12RaytracingFallback.h"
 
@@ -78,7 +77,7 @@ class RayTracingPipelineGenerator
 public:
   /// The pipeline helper requires access to the device, as well as the
   /// raytracing device prior to Windows 10 RS5.
-  RayTracingPipelineGenerator(ID3D12Device* device, ID3D12DeviceRaytracingPrototype* rtDevice);
+  RayTracingPipelineGenerator(ID3D12Device* device, ID3D12Device5* rtDevice);
 
   /// Fallback layer implementation
   RayTracingPipelineGenerator(ID3D12Device* device, ID3D12RaytracingFallbackDevice* fallbackDevice);
@@ -126,7 +125,7 @@ public:
   void SetMaxRecursionDepth(UINT maxDepth);
 
   /// Compiles the raytracing state object
-  ID3D12StateObjectPrototype* Generate(ID3D12RootSignature* globalRootSignature = nullptr);
+  ID3D12StateObject* Generate(ID3D12RootSignature* globalRootSignature = nullptr);
 
   /// Fallback layer implementation
   ID3D12RaytracingFallbackStateObject* FallbackGenerate(ID3D12RootSignature* globalRootSignature = nullptr);
@@ -205,7 +204,7 @@ private:
   ID3D12RootSignature* m_dummyLocalRootSignature;
   ID3D12RootSignature* m_dummyGlobalRootSignature;
 
-  ID3D12DeviceRaytracingPrototype* m_rtDevice;
+  ID3D12Device5* m_rtDevice;
 
   ID3D12RaytracingFallbackDevice* m_fallbackDevice;
 };

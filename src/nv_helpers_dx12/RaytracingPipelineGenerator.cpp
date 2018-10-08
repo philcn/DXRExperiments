@@ -51,7 +51,7 @@ namespace nv_helpers_dx12
 // The pipeline helper requires access to the device, as well as the
 // raytracing device prior to Windows 10 RS5.
 RayTracingPipelineGenerator::RayTracingPipelineGenerator(ID3D12Device* device,
-                                                         ID3D12DeviceRaytracingPrototype* rtDevice)
+                                                         ID3D12Device5* rtDevice)
     : m_device(device), m_rtDevice(rtDevice)
 {
   // The pipeline creation requires having at least one empty global and local root signatures, so
@@ -151,7 +151,7 @@ void RayTracingPipelineGenerator::SetMaxRecursionDepth(UINT maxDepth)
 //--------------------------------------------------------------------------------------------------
 //
 // Compiles the raytracing state object
-ID3D12StateObjectPrototype* RayTracingPipelineGenerator::Generate(ID3D12RootSignature* globalRootSignature)
+ID3D12StateObject* RayTracingPipelineGenerator::Generate(ID3D12RootSignature* globalRootSignature)
 {
   // The pipeline is made of a set of sub-objects, representing the DXIL libraries, hit group
   // declarations, root signature associations, plus some configuration objects
@@ -257,7 +257,7 @@ ID3D12StateObjectPrototype* RayTracingPipelineGenerator::Generate(ID3D12RootSign
 
   // The pipeline construction always requires a global root signature
   D3D12_STATE_SUBOBJECT globalRootSig;
-  globalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
+  globalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
   ID3D12RootSignature* dgSig = globalRootSignature ? globalRootSignature : m_dummyGlobalRootSignature;
   globalRootSig.pDesc = &dgSig;
 
@@ -286,7 +286,7 @@ ID3D12StateObjectPrototype* RayTracingPipelineGenerator::Generate(ID3D12RootSign
   pipelineDesc.NumSubobjects = currentIndex; // static_cast<UINT>(subobjects.size());
   pipelineDesc.pSubobjects = subobjects.data();
   
-  ID3D12StateObjectPrototype* rtStateObject = nullptr;
+  ID3D12StateObject* rtStateObject = nullptr;
 
   // Create the state object
   HRESULT hr = m_rtDevice->CreateStateObject(&pipelineDesc, IID_PPV_ARGS(&rtStateObject));
@@ -405,7 +405,7 @@ ID3D12RaytracingFallbackStateObject* RayTracingPipelineGenerator::FallbackGenera
 
   // The pipeline construction always requires a global root signature
   D3D12_STATE_SUBOBJECT globalRootSig;
-  globalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE;
+  globalRootSig.Type = D3D12_STATE_SUBOBJECT_TYPE_GLOBAL_ROOT_SIGNATURE;
   ID3D12RootSignature* dgSig = globalRootSignature ? globalRootSignature : m_dummyGlobalRootSignature;
   globalRootSig.pDesc = &dgSig;
 

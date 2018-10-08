@@ -5,12 +5,12 @@
 
 namespace DXRFramework
 {
-    RtContext::SharedPtr RtContext::create(ID3D12Device *device, ID3D12GraphicsCommandList *commandList)
+    RtContext::SharedPtr RtContext::create(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback)
     {
-        return SharedPtr(new RtContext(device, commandList));
+        return SharedPtr(new RtContext(device, commandList, forceComputeFallback));
     }
 
-    RtContext::RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList)
+    RtContext::RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback)
         : mDevice(device), mCommandList(commandList)
     {
         // TODO: try enable experimental feature and query DXR interface
@@ -18,6 +18,9 @@ namespace DXRFramework
 
         if (!isDXRDriverSupported) {
             CreateRaytracingFallbackDeviceFlags createDeviceFlags = CreateRaytracingFallbackDeviceFlags::EnableRootDescriptorsInShaderRecords;
+            if (forceComputeFallback) {
+                createDeviceFlags = (CreateRaytracingFallbackDeviceFlags)(createDeviceFlags | CreateRaytracingFallbackDeviceFlags::ForceComputeFallback);
+            }
             ThrowIfFailed(D3D12CreateRaytracingFallbackDevice(device, createDeviceFlags, 0, IID_PPV_ARGS(&mFallbackDevice)));
             mFallbackDevice->QueryRaytracingCommandList(commandList, IID_PPV_ARGS(&mFallbackCommandList));
         }
@@ -141,7 +144,7 @@ namespace DXRFramework
         uint32_t recordSize = bindings->getRecordSize();
         D3D12_GPU_VIRTUAL_ADDRESS startAddress = pShaderTable->GetGPUVirtualAddress();
 
-        D3D12_FALLBACK_DISPATCH_RAYS_DESC raytraceDesc = {};
+        D3D12_DISPATCH_RAYS_DESC raytraceDesc = {};
         raytraceDesc.Width = width;
         raytraceDesc.Height = height;
 
@@ -158,7 +161,9 @@ namespace DXRFramework
         raytraceDesc.HitGroupTable.StrideInBytes = recordSize;
         raytraceDesc.HitGroupTable.SizeInBytes = recordSize * bindings->getHitProgramsCount();
 
+        mFallbackCommandList->SetPipelineState1(state->getFallbackRtso());
+
         // Dispatch
-        mFallbackCommandList->DispatchRays(state->getFallbackRtso(), &raytraceDesc);
+        mFallbackCommandList->DispatchRays(&raytraceDesc);
     }
 }

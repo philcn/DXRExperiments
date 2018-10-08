@@ -104,7 +104,7 @@ void BottomLevelASGenerator::AddVertexBuffer(
       indexBuffer ? (indexBuffer->GetGPUVirtualAddress() + indexOffsetInBytes) : 0;
   descriptor.Triangles.IndexFormat = indexBuffer ? indexFormat : DXGI_FORMAT_UNKNOWN;
   descriptor.Triangles.IndexCount = indexCount;
-  descriptor.Triangles.Transform =
+  descriptor.Triangles.Transform3x4 =
       transformBuffer ? (transformBuffer->GetGPUVirtualAddress() + transformOffsetInBytes) : 0;
   descriptor.Flags =
       isOpaque ? D3D12_RAYTRACING_GEOMETRY_FLAG_OPAQUE : D3D12_RAYTRACING_GEOMETRY_FLAG_NONE;
@@ -117,7 +117,7 @@ void BottomLevelASGenerator::AddVertexBuffer(
 // structure, as well as the size of the resulting structure. The allocation of
 // the buffers is then left to the application
 void BottomLevelASGenerator::ComputeASBufferSizes(
-    ID3D12DeviceRaytracingPrototype* device, // Device on which the build will be performed
+    ID3D12Device5* device, // Device on which the build will be performed
     bool allowUpdate,                        // If true, the resulting acceleration structure will
                                              // allow iterative updates
     UINT64* scratchSizeInBytes,              // Required scratch memory on the GPU to build
@@ -134,12 +134,12 @@ void BottomLevelASGenerator::ComputeASBufferSizes(
 
   // Describe the work being requested, in this case the construction of a
   // (possibly dynamic) bottom-level hierarchy, with the given vertex buffers
-  D3D12_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_DESC prebuildDesc;
-  prebuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-  prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-  prebuildDesc.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
-  prebuildDesc.pGeometryDescs = m_vertexBuffers.data();
-  prebuildDesc.Flags = m_flags;
+  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
+  buildInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+  buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+  buildInputs.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
+  buildInputs.pGeometryDescs = m_vertexBuffers.data();
+  buildInputs.Flags = m_flags;
 
   // This structure is used to hold the sizes of the required scratch memory and resulting AS
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
@@ -147,7 +147,7 @@ void BottomLevelASGenerator::ComputeASBufferSizes(
   // Building the acceleration structure (AS) requires some scratch space, as well as space to store
   // the resulting structure This function computes a conservative estimate of the memory
   // requirements for both, based on the geometry size.
-  device->GetRaytracingAccelerationStructurePrebuildInfo(&prebuildDesc, &info);
+  device->GetRaytracingAccelerationStructurePrebuildInfo(&buildInputs, &info);
 
   // Buffer sizes need to be 256-byte-aligned
   *scratchSizeInBytes =
@@ -179,12 +179,12 @@ void BottomLevelASGenerator::ComputeASBufferSizes(
 
   // Describe the work being requested, in this case the construction of a
   // (possibly dynamic) bottom-level hierarchy, with the given vertex buffers
-  D3D12_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_DESC prebuildDesc;
-  prebuildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-  prebuildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-  prebuildDesc.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
-  prebuildDesc.pGeometryDescs = m_vertexBuffers.data();
-  prebuildDesc.Flags = m_flags;
+  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
+  buildInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+  buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+  buildInputs.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
+  buildInputs.pGeometryDescs = m_vertexBuffers.data();
+  buildInputs.Flags = m_flags;
 
   // This structure is used to hold the sizes of the required scratch memory and resulting AS
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO info = {};
@@ -192,7 +192,7 @@ void BottomLevelASGenerator::ComputeASBufferSizes(
   // Building the acceleration structure (AS) requires some scratch space, as well as space to store
   // the resulting structure This function computes a conservative estimate of the memory
   // requirements for both, based on the geometry size.
-  device->GetRaytracingAccelerationStructurePrebuildInfo(&prebuildDesc, &info);
+  device->GetRaytracingAccelerationStructurePrebuildInfo(&buildInputs, &info);
 
   // Buffer sizes need to be 256-byte-aligned
   *scratchSizeInBytes =
@@ -212,7 +212,7 @@ void BottomLevelASGenerator::ComputeASBufferSizes(
 // previousResult pointers can be the same.
 void BottomLevelASGenerator::Generate(
     ID3D12GraphicsCommandList* commandList, // Command list on which the build will be enqueued
-    ID3D12CommandListRaytracingPrototype*
+    ID3D12GraphicsCommandList4*
         rtCmdList,                 // Same command list, casted into a raytracing list. This
                                    // will not be needed anymore with Windows 10 RS5.
     ID3D12Resource* scratchBuffer, // Scratch buffer used by the builder to
@@ -251,21 +251,22 @@ void BottomLevelASGenerator::Generate(
   }
   // Create a descriptor of the requested builder work, to generate a
   // bottom-level AS from the input parameters
+  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
+  buildInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+  buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+  buildInputs.NumDescs = static_cast<UINT>(m_vertexBuffers.size()); 
+  buildInputs.pGeometryDescs = static_cast<const D3D12_RAYTRACING_GEOMETRY_DESC*>(m_vertexBuffers.data());
+  buildInputs.Flags = flags;
+
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
-  buildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-  buildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-  buildDesc.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
-  buildDesc.pGeometryDescs = m_vertexBuffers.data();
-  buildDesc.DestAccelerationStructureData = {resultBuffer->GetGPUVirtualAddress(),
-                                             m_resultSizeInBytes};
-  buildDesc.ScratchAccelerationStructureData = {scratchBuffer->GetGPUVirtualAddress(),
-                                                m_scratchSizeInBytes};
+  buildDesc.Inputs = buildInputs;
+  buildDesc.DestAccelerationStructureData = resultBuffer->GetGPUVirtualAddress();
+  buildDesc.ScratchAccelerationStructureData = scratchBuffer->GetGPUVirtualAddress();
   buildDesc.SourceAccelerationStructureData =
       previousResult ? previousResult->GetGPUVirtualAddress() : 0;
-  buildDesc.Flags = flags;
 
   // Build the AS
-  rtCmdList->BuildRaytracingAccelerationStructure(&buildDesc);
+  rtCmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
   // Wait for the builder to complete by setting a barrier on the resulting buffer. This is
   // particularly important as the construction of the top-level hierarchy may be called right
@@ -319,21 +320,22 @@ void BottomLevelASGenerator::Generate(
   }
   // Create a descriptor of the requested builder work, to generate a
   // bottom-level AS from the input parameters
+  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS buildInputs = {};
+  buildInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+  buildInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+  buildInputs.NumDescs = static_cast<UINT>(m_vertexBuffers.size()); 
+  buildInputs.pGeometryDescs = m_vertexBuffers.data();
+  buildInputs.Flags = flags;
+
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_DESC buildDesc = {};
-  buildDesc.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-  buildDesc.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-  buildDesc.NumDescs = static_cast<UINT>(m_vertexBuffers.size());
-  buildDesc.pGeometryDescs = m_vertexBuffers.data();
-  buildDesc.DestAccelerationStructureData = {resultBuffer->GetGPUVirtualAddress(),
-                                             m_resultSizeInBytes};
-  buildDesc.ScratchAccelerationStructureData = {scratchBuffer->GetGPUVirtualAddress(),
-                                                m_scratchSizeInBytes};
+  buildDesc.Inputs = buildInputs;
+  buildDesc.DestAccelerationStructureData = resultBuffer->GetGPUVirtualAddress();
+  buildDesc.ScratchAccelerationStructureData = scratchBuffer->GetGPUVirtualAddress();
   buildDesc.SourceAccelerationStructureData =
       previousResult ? previousResult->GetGPUVirtualAddress() : 0;
-  buildDesc.Flags = flags;
 
   // Build the AS
-  rtCmdList->BuildRaytracingAccelerationStructure(&buildDesc);
+  rtCmdList->BuildRaytracingAccelerationStructure(&buildDesc, 0, nullptr);
 
   // Wait for the builder to complete by setting a barrier on the resulting buffer. This is
   // particularly important as the construction of the top-level hierarchy may be called right
