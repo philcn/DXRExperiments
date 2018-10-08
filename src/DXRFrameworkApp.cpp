@@ -84,7 +84,7 @@ void DXRFrameworkApp::OnInit()
 }
 
 static ComPtr<ID3D12Resource> sTextureResources[2];
-static WRAPPED_GPU_POINTER sTextureHandle[2];
+static D3D12_GPU_DESCRIPTOR_HANDLE sTextureGpuHandle[2];
 
 void DXRFrameworkApp::InitRaytracing()
 {
@@ -153,8 +153,8 @@ void DXRFrameworkApp::InitRaytracing()
         auto uploadResourcesFinished = resourceUpload.End(m_deviceResources->GetCommandQueue());
         uploadResourcesFinished.wait();
 
-        sTextureHandle[0] = mRtContext->createTextureSRVWrappedPointer(sTextureResources[0].Get());
-        sTextureHandle[1] = mRtContext->createTextureSRVWrappedPointer(sTextureResources[1].Get());
+        sTextureGpuHandle[0] = mRtContext->createTextureSRVHandle(sTextureResources[0].Get());
+        sTextureGpuHandle[1] = mRtContext->createTextureSRVHandle(sTextureResources[1].Get());
     }
 }
 
@@ -324,8 +324,8 @@ void DXRFrameworkApp::DoRaytracing()
     }
 
     for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
-        mRtBindings->getMissVars(rayType)->appendHeapRanges(*reinterpret_cast<UINT64*>(&sTextureHandle[0]));
-        mRtBindings->getMissVars(rayType)->appendHeapRanges(*reinterpret_cast<UINT64*>(&sTextureHandle[1]));
+        mRtBindings->getMissVars(rayType)->appendHeapRanges(sTextureGpuHandle[0].ptr);
+        mRtBindings->getMissVars(rayType)->appendHeapRanges(sTextureGpuHandle[1].ptr);
     }
 
     mRtBindings->apply(mRtContext, mRtState);
