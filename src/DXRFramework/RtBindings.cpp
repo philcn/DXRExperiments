@@ -24,7 +24,7 @@ namespace DXRFramework
         mHitProgCount = mProgram->getHitProgramCount();
         mMissProgCount = mProgram->getMissProgramCount();
         mFirstHitVarEntry = kFirstMissRecordIndex + mMissProgCount;
-        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
+        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize(); // D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES
 
         mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
 

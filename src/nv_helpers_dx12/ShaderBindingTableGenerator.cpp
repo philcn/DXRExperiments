@@ -80,7 +80,7 @@ void ShaderBindingTableGenerator::AddHitGroup(const std::wstring& entryPoint,
 uint32_t ShaderBindingTableGenerator::ComputeSBTSize(ID3D12Device* rtDevice)
 {
   // Size of a program identifier
-  m_progIdSize = 32;// rtDevice->GetShaderIdentifierSize();
+  m_progIdSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
   // Compute the entry size of each program type depending on the maximum number of parameters in
   // each category
