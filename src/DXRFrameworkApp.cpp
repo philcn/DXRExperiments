@@ -375,13 +375,12 @@ void DXRFrameworkApp::UserInterface()
 
     if (mFrameAccumulationEnabled) {
         int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
-        ui::SliderInt("Iterations", &currentIterations, 0, mShaderDebugOptions.maxIterations);
-
         int oldMaxIterations = mShaderDebugOptions.maxIterations;
         if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
             resetAccumulation |= (mShaderDebugOptions.maxIterations < mAccumCount);
             mAccumCount = min(mAccumCount, oldMaxIterations);
         }
+        ui::ProgressBar(float(currentIterations) / float(mShaderDebugOptions.maxIterations), ImVec2(), std::to_string(currentIterations).c_str());
     }
 
     ui::Separator();
