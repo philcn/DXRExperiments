@@ -87,7 +87,7 @@ void DXRFrameworkApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
-    mRtContext = RtContext::create(device, commandList, true);
+    mRtContext = RtContext::create(device, commandList, false);
 
     RtProgram::Desc programDesc;
     std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
@@ -336,7 +336,7 @@ void DXRFrameworkApp::DoRaytracing()
 
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
-    mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight());
+    mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight(), 3);
 }
 
 void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)

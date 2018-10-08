@@ -136,7 +136,7 @@ namespace DXRFramework
         return descriptorIndexToUse;
     }
 
-    void RtContext::raytrace(RtBindings::SharedPtr bindings, RtState::SharedPtr state, uint32_t width, uint32_t height)
+    void RtContext::raytrace(RtBindings::SharedPtr bindings, RtState::SharedPtr state, uint32_t width, uint32_t height, uint32_t depth)
     {
         // resourceBarrier(bindings->getShaderTable(), Resource::State::NonPixelShader);
 
@@ -147,6 +147,7 @@ namespace DXRFramework
         D3D12_DISPATCH_RAYS_DESC raytraceDesc = {};
         raytraceDesc.Width = width;
         raytraceDesc.Height = height;
+        raytraceDesc.Depth = depth;
 
         // RayGen is the first entry in the shader-table
         raytraceDesc.RayGenerationShaderRecord.StartAddress = startAddress + bindings->getRayGenRecordIndex() * recordSize;

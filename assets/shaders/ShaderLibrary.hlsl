@@ -33,7 +33,10 @@ SamplerState defaultSampler : register(s0);
 ////////////////////////////////////////////////////////////////////////////////
 
 // StructuredBuffer indexing is not supported in compute path of Fallback Layer
-#define USE_STRUCTURED_VERTEX_BUFFER 0
+// On the other hand, native DXR path requires buffers bound through root 
+// descriptors to be either StructuredBuffer or raw buffer (ByteAddressBuffer).
+// Therefore, must use StructuredBuffer in native DXR path.
+#define USE_STRUCTURED_VERTEX_BUFFER 1
 #if USE_STRUCTURED_VERTEX_BUFFER
 StructuredBuffer<Vertex> vertexBuffer : register(t0, space1);
 #else
