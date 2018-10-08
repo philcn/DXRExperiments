@@ -16,6 +16,9 @@ namespace GameCore
     extern HWND g_hWnd; 
 }
 
+bool forceComputePath = false;
+bool useRootDescriptorForHitGroupBuffers = true;
+
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     mRaytracingEnabled(true),
@@ -87,7 +90,7 @@ void DXRFrameworkApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
-    mRtContext = RtContext::create(device, commandList, false);
+    mRtContext = RtContext::create(device, commandList, forceComputePath);
 
     RtProgram::Desc programDesc;
     std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
@@ -296,8 +299,6 @@ void DXRFrameworkApp::ResetAccumulation()
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool useRootDescriptorForHitGroupBuffers = true;
-
 void DXRFrameworkApp::DoRaytracing()
 {
     auto commandList = m_deviceResources->GetCommandList();
@@ -312,6 +313,7 @@ void DXRFrameworkApp::DoRaytracing()
                 mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
                 mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
             } else {
+                // TODO: heap ranges don't work in native DXR path yet
                 mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&vbSrvWrappedPtr));
                 mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&ibSrvWrappedPtr));
             }
