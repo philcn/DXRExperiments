@@ -164,7 +164,7 @@ namespace DXRFramework
             cubeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             cubeSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
             cubeSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            cubeSampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+            cubeSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
             cubeSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
             cubeSampler.ShaderRegister = 0;
 

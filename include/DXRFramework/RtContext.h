@@ -32,11 +32,11 @@ namespace DXRFramework
         // Create a wrapped pointer for the Fallback Layer path.
         WRAPPED_GPU_POINTER createBufferUAVWrappedPointer(ID3D12Resource* resource);
         WRAPPED_GPU_POINTER createBufferSRVWrappedPointer(ID3D12Resource* resource, bool rawBuffer = true, UINT structureStride = 4);
-        WRAPPED_GPU_POINTER createTextureSRVWrappedPointer(ID3D12Resource* resource);
+        WRAPPED_GPU_POINTER createTextureSRVWrappedPointer(ID3D12Resource* resource, bool cubemap = false);
 
         D3D12_GPU_DESCRIPTOR_HANDLE createBufferUAVHandle(ID3D12Resource* resource);
         D3D12_GPU_DESCRIPTOR_HANDLE createBufferSRVHandle(ID3D12Resource* resource, bool rawBuffer = true, UINT structureStride = 4);
-        D3D12_GPU_DESCRIPTOR_HANDLE createTextureSRVHandle(ID3D12Resource* resource);
+        D3D12_GPU_DESCRIPTOR_HANDLE createTextureSRVHandle(ID3D12Resource* resource, bool cubemap = false);
 
     private:
         RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback);

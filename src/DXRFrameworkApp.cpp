@@ -153,7 +153,7 @@ void DXRFrameworkApp::InitRaytracing()
         uploadResourcesFinished.wait();
 
         sTextureGpuHandle[0] = mRtContext->createTextureSRVHandle(sTextureResources[0].Get());
-        sTextureGpuHandle[1] = mRtContext->createTextureSRVHandle(sTextureResources[1].Get());
+        sTextureGpuHandle[1] = mRtContext->createTextureSRVHandle(sTextureResources[1].Get(), true);
     }
 }
 

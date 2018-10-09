@@ -141,12 +141,12 @@ namespace DXRFramework
         return getDescriptorGPUHandle(descriptorHeapIndex);
     }
 
-    static D3D12_SHADER_RESOURCE_VIEW_DESC createTextureSRVDesc(ID3D12Resource *resource)
+    static D3D12_SHADER_RESOURCE_VIEW_DESC createTextureSRVDesc(ID3D12Resource *resource, bool cubemap)
     {
         auto textureDesc = resource->GetDesc();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.ViewDimension = cubemap ? D3D12_SRV_DIMENSION_TEXTURECUBE : D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
         srvDesc.Format = textureDesc.Format;
         srvDesc.Texture2D.MipLevels = (!textureDesc.MipLevels) ? -1 : textureDesc.MipLevels;
@@ -154,9 +154,9 @@ namespace DXRFramework
         return srvDesc;
     }
 
-    WRAPPED_GPU_POINTER RtContext::createTextureSRVWrappedPointer(ID3D12Resource* resource)
+    WRAPPED_GPU_POINTER RtContext::createTextureSRVWrappedPointer(ID3D12Resource* resource, bool cubemap)
     {
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = createTextureSRVDesc(resource);
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = createTextureSRVDesc(resource, cubemap);
 
         UINT descriptorHeapIndex = 0;
         if (!mFallbackDevice->UsingRaytracingDriver()) {
@@ -167,9 +167,9 @@ namespace DXRFramework
         return mFallbackDevice->GetWrappedPointerSimple(descriptorHeapIndex, resource->GetGPUVirtualAddress());
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE RtContext::createTextureSRVHandle(ID3D12Resource* resource)
+    D3D12_GPU_DESCRIPTOR_HANDLE RtContext::createTextureSRVHandle(ID3D12Resource* resource, bool cubemap)
     {
-        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = createTextureSRVDesc(resource);
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = createTextureSRVDesc(resource, cubemap);
 
         D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle;
         UINT descriptorHeapIndex = allocateDescriptor(&cpuDescriptorHandle);

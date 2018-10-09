@@ -333,20 +333,22 @@ float2 wsVectorToLatLong(float3 dir)
     return float2(u, v);
 }
 
-[shader("miss")]
-void PrimaryMiss(inout HitInfo payload : SV_RayPayload)
+float3 sampleEnvironment()
 {
-    uint2 launchIndex = DispatchRaysIndex().xy;
-    float2 dims = float2(DispatchRaysDimensions().xy);
-
-    // cubemap, doesn't work now
+    // cubemap
     float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, normalize(WorldRayDirection().xyz), 0.0);
 
     // lat-long environment map
-    float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
-    float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
+    // float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
+    // float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
 
-    payload.colorAndDistance = float4(envSample.rgb, -1.0);
+    return radianceSample.rgb * options.environmentStrength;
+}
+
+[shader("miss")]
+void PrimaryMiss(inout HitInfo payload : SV_RayPayload)
+{
+    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
 }
 
 [shader("miss")]
@@ -358,11 +360,7 @@ void ShadowMiss(inout ShadowPayload payload : SV_RayPayload)
 [shader("miss")]
 void SecondaryMiss(inout HitInfo payload : SV_RayPayload)
 {
-    // lat-long environment map
-    float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
-    float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
-
-    payload.colorAndDistance = float4(envSample.rgb * options.environmentStrength, -1.0);
+    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
 }
 
 #endif // SHADER_LIBRARY_HLSL
