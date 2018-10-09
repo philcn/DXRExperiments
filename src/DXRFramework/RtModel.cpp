@@ -109,9 +109,16 @@ namespace DXRFramework
 
         blasGenerator.Generate(commandList, fallbackCommandList, scratch.Get(), mBlasBuffer.Get());
 
-        mVertexBufferWrappedPtr = context->createBufferSRVWrappedPointer(mVertexBuffer.Get(), false, sizeof(Vertex));
-        if (mIndexBuffer) {
-            mIndexBufferWrappedPtr = context->createBufferSRVWrappedPointer(mIndexBuffer.Get(), false, sizeof(uint32_t));
+        if (context->isUsingNativeDxr()) {
+            mVertexBufferSrvHandle = context->createBufferSRVHandle(mVertexBuffer.Get(), false, sizeof(Vertex));
+            if (mIndexBuffer) {
+                mIndexBufferSrvHandle = context->createBufferSRVHandle(mIndexBuffer.Get(), false, sizeof(uint32_t));
+            }
+        } else {
+            mVertexBufferWrappedPtr = context->createBufferSRVWrappedPointer(mVertexBuffer.Get(), false, sizeof(Vertex));
+            if (mIndexBuffer) {
+                mIndexBufferWrappedPtr = context->createBufferSRVWrappedPointer(mIndexBuffer.Get(), false, sizeof(uint32_t));
+            }
         }
     }
 }

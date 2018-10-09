@@ -17,7 +17,7 @@ namespace GameCore
 }
 
 bool forceComputePath = false;
-bool useRootDescriptorForHitGroupBuffers = true;
+bool useRootDescriptorForHitGroupBuffers = false;
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -307,15 +307,16 @@ void DXRFrameworkApp::DoRaytracing()
 
     for (int rayType = 0; rayType < mRtProgram->getHitProgramCount(); ++rayType) {
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
-            WRAPPED_GPU_POINTER vbSrvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
-            WRAPPED_GPU_POINTER ibSrvWrappedPtr = mRtScene->getModel(instance)->getIndexBufferWrappedPtr();
             if (useRootDescriptorForHitGroupBuffers) {
+                WRAPPED_GPU_POINTER vbSrvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
+                WRAPPED_GPU_POINTER ibSrvWrappedPtr = mRtScene->getModel(instance)->getIndexBufferWrappedPtr();
                 mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
                 mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
             } else {
-                // TODO: heap ranges don't work in native DXR path yet
-                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&vbSrvWrappedPtr));
-                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(*reinterpret_cast<UINT64*>(&ibSrvWrappedPtr));
+                D3D12_GPU_DESCRIPTOR_HANDLE vbSrvHandle = mRtScene->getModel(instance)->getVertexBufferSrvHandle();
+                D3D12_GPU_DESCRIPTOR_HANDLE ibSrvHandle = mRtScene->getModel(instance)->getIndexBufferSrvHandle();
+                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(vbSrvHandle.ptr);
+                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(ibSrvHandle.ptr);
             }
 
             const Material &material = mMaterials[instance];

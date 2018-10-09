@@ -18,6 +18,8 @@ namespace DXRFramework
         ID3D12RaytracingFallbackDevice *getFallbackDevice() const { return mFallbackDevice.Get(); }
         ID3D12RaytracingFallbackCommandList *getFallbackCommandList() const { return mFallbackCommandList.Get(); }
 
+        bool isUsingNativeDxr() const { return mFallbackDevice->UsingRaytracingDriver(); }
+
         void raytrace(std::shared_ptr<RtBindings> bindings, std::shared_ptr<RtState> state, uint32_t width, uint32_t height, uint32_t depth);
 
         void bindDescriptorHeap();

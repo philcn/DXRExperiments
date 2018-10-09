@@ -14,6 +14,9 @@ namespace DXRFramework
         ID3D12Resource *getVertexBuffer() const { return mVertexBuffer.Get(); }
         ID3D12Resource *getIndexBuffer() const { return mIndexBuffer.Get(); }
 
+        D3D12_GPU_DESCRIPTOR_HANDLE getVertexBufferSrvHandle() const { return mVertexBufferSrvHandle; }
+        D3D12_GPU_DESCRIPTOR_HANDLE getIndexBufferSrvHandle() const { return mIndexBufferSrvHandle; }
+
         WRAPPED_GPU_POINTER getVertexBufferWrappedPtr() const { return mVertexBufferWrappedPtr; }
         WRAPPED_GPU_POINTER getIndexBufferWrappedPtr() const { return mIndexBufferWrappedPtr; }
 
@@ -30,6 +33,9 @@ namespace DXRFramework
         ComPtr<ID3D12Resource> mVertexBuffer;
         ComPtr<ID3D12Resource> mIndexBuffer;
         ComPtr<ID3D12Resource> mBlasBuffer;
+
+        D3D12_GPU_DESCRIPTOR_HANDLE mVertexBufferSrvHandle;
+        D3D12_GPU_DESCRIPTOR_HANDLE mIndexBufferSrvHandle;
 
         WRAPPED_GPU_POINTER mVertexBufferWrappedPtr;
         WRAPPED_GPU_POINTER mIndexBufferWrappedPtr;
