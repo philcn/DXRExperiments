@@ -17,7 +17,6 @@ namespace GameCore
 }
 
 bool forceComputePath = false;
-bool useRootDescriptorForHitGroupBuffers = false;
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -305,38 +304,35 @@ void DXRFrameworkApp::DoRaytracing()
     commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
     mRtContext->bindDescriptorHeap();
 
+    // Populate shader table root arguments
     for (int rayType = 0; rayType < mRtProgram->getHitProgramCount(); ++rayType) {
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
-            if (useRootDescriptorForHitGroupBuffers) {
-                WRAPPED_GPU_POINTER vbSrvWrappedPtr = mRtScene->getModel(instance)->getVertexBufferWrappedPtr();
-                WRAPPED_GPU_POINTER ibSrvWrappedPtr = mRtScene->getModel(instance)->getIndexBufferWrappedPtr();
-                mRtBindings->getHitVars(rayType, instance)->appendDescriptor(vbSrvWrappedPtr);
-                mRtBindings->getHitVars(rayType, instance)->appendDescriptor(ibSrvWrappedPtr);
-            } else {
-                D3D12_GPU_DESCRIPTOR_HANDLE vbSrvHandle = mRtScene->getModel(instance)->getVertexBufferSrvHandle();
-                D3D12_GPU_DESCRIPTOR_HANDLE ibSrvHandle = mRtScene->getModel(instance)->getIndexBufferSrvHandle();
-                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(vbSrvHandle.ptr);
-                mRtBindings->getHitVars(rayType, instance)->appendHeapRanges(ibSrvHandle.ptr);
-            }
+            auto &hitVars = mRtBindings->getHitVars(rayType, instance);
+
+            D3D12_GPU_DESCRIPTOR_HANDLE vbSrvHandle = mRtScene->getModel(instance)->getVertexBufferSrvHandle();
+            D3D12_GPU_DESCRIPTOR_HANDLE ibSrvHandle = mRtScene->getModel(instance)->getIndexBufferSrvHandle();
+            hitVars->appendHeapRanges(vbSrvHandle.ptr);
+            hitVars->appendHeapRanges(ibSrvHandle.ptr);
 
             const Material &material = mMaterials[instance];
-            mRtBindings->getHitVars(rayType, instance)->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
+            hitVars->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
         }
     }
 
     for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
-        mRtBindings->getMissVars(rayType)->appendHeapRanges(sTextureGpuHandle[0].ptr);
-        mRtBindings->getMissVars(rayType)->appendHeapRanges(sTextureGpuHandle[1].ptr);
+        auto &missVars = mRtBindings->getMissVars(rayType);
+        missVars->appendHeapRanges(sTextureGpuHandle[0].ptr);
+        missVars->appendHeapRanges(sTextureGpuHandle[1].ptr);
     }
 
     mRtBindings->apply(mRtContext, mRtState);
 
-    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
-
+    // Set global root arguments
     auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
     auto cbGpuAddress = mPerFrameConstantBuffer->GetGPUVirtualAddress() + mAlignedPerFrameConstantBufferSize * frameIndex;
     commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PerFrameConstantsSlot, cbGpuAddress);
 
+    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
     mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight(), 3);
