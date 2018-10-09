@@ -207,3 +207,11 @@ float3 HitWorldPosition()
 {
     return WorldRayOrigin() + RayTCurrent() * WorldRayDirection();
 }
+
+float2 wsVectorToLatLong(float3 dir)
+{
+    float3 p = normalize(dir);
+    float u = (1.f + atan2(p.x, -p.z) * M_1_PI) * 0.5f;
+    float v = acos(p.y) * M_1_PI;
+    return float2(u, v);
+}

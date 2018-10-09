@@ -53,7 +53,7 @@ cbuffer MaterialConstants : register(b0, space1)
 ////////////////////////////////////////////////////////////////////////////////
 
 Texture2D envMap : register(t0, space2);
-TextureCube radianceTexture : register(t1, space2);
+TextureCube envCubemap : register(t1, space2);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Ray-gen shader
@@ -325,24 +325,16 @@ void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)
 // Miss shader
 ////////////////////////////////////////////////////////////////////////////////
 
-float2 wsVectorToLatLong(float3 dir)
-{
-    float3 p = normalize(dir);
-    float u = (1.f + atan2(p.x, -p.z) * M_1_PI) * 0.5f;
-    float v = acos(p.y) * M_1_PI;
-    return float2(u, v);
-}
-
 float3 sampleEnvironment()
 {
     // cubemap
-    float4 radianceSample = radianceTexture.SampleLevel(defaultSampler, normalize(WorldRayDirection().xyz), 0.0);
+    float4 envSample = envCubemap.SampleLevel(defaultSampler, WorldRayDirection().xyz, 0.0);
 
     // lat-long environment map
     // float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
     // float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
 
-    return radianceSample.rgb * options.environmentStrength;
+    return envSample.rgb * options.environmentStrength;
 }
 
 [shader("miss")]
