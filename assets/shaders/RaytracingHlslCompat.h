@@ -84,6 +84,9 @@ struct DebugOptions
     UINT showIndirectDiffuseOnly;
     UINT showIndirectSpecularOnly;
     UINT showAmbientOcclusionOnly;
+    UINT showGBufferAlbedoOnly;
+    UINT showDirectLightingOnly;
+    UINT showReflectionDenoiseGuide;
     UINT showFresnelTerm;
     float environmentStrength;
     UINT debug;
@@ -92,9 +95,9 @@ struct DebugOptions
 struct PerFrameConstants
 {
     CameraParams cameraParams;
-    DebugOptions options;
     DirectionalLightParams directionalLight;
     PointLightParams pointLight;
+    DebugOptions options;
 };
 
 struct MaterialParams

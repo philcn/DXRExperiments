@@ -283,6 +283,12 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
             return fresnel * materialParams.specular * specularComponent;
         } else if (perFrameConstants.options.showFresnelTerm) {
             return fresnel;
+        } else if (perFrameConstants.options.showGBufferAlbedoOnly) {
+            return materialParams.albedo;
+        } else if (perFrameConstants.options.showDirectLightingOnly) {
+            return materialParams.albedo * directContrib / M_PI;
+        } else if (perFrameConstants.options.showReflectionDenoiseGuide) {
+            return materialParams.roughness;
         }
     }
 

@@ -17,6 +17,7 @@ namespace GameCore
 }
 
 bool forceComputePath = false;
+bool staticMode = true;
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
@@ -29,6 +30,9 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     mShaderDebugOptions.showIndirectDiffuseOnly = false;
     mShaderDebugOptions.showIndirectSpecularOnly = false;
     mShaderDebugOptions.showAmbientOcclusionOnly = false;
+    mShaderDebugOptions.showGBufferAlbedoOnly = false;
+    mShaderDebugOptions.showDirectLightingOnly = false;
+    mShaderDebugOptions.showReflectionDenoiseGuide = false;
     mShaderDebugOptions.showFresnelTerm = false;
     mShaderDebugOptions.environmentStrength = 1.0f;
     mShaderDebugOptions.debug = 0;
@@ -63,7 +67,11 @@ void DXRFrameworkApp::OnInit()
 
     GameInput::Initialize();
 
-    mCamera.SetEyeAtUp(Math::Vector3(-0.3, 0.2, 3.0), Math::Vector3(Math::kZero), Math::Vector3(Math::kYUnitVector));
+    if (staticMode) {
+        mAnimationPaused = true;
+    }
+
+    mCamera.SetEyeAtUp(Math::Vector3(1.0, 1.2, 4.0), Math::Vector3(0.0, 0.5, 0.0), Math::Vector3(Math::kYUnitVector));
     mCamera.SetZRange(1.0f, 10000.0f);
     mCamController.reset(new GameCore::CameraController(mCamera, mCamera.GetUpVec()));
     mCamController->EnableFirstPersonMouse(false);
@@ -229,6 +237,10 @@ inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XM
 
 void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
 {
+    if (staticMode) {
+        elapsedTime = 142.0f;
+    }
+
     if (HasCameraMoved() || !mFrameAccumulationEnabled) {
         mAccumCount = 0;
         mLastCameraVPMatrix = mCamera.GetViewProjMatrix();
@@ -264,7 +276,7 @@ void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
     }
     ui::End();
 
-    if (!mAnimationPaused) {
+    if (staticMode || !mAnimationPaused) {
         // Populate lights
         XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
         XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
@@ -386,6 +398,9 @@ void DXRFrameworkApp::UserInterface()
     resetAccumulation |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
     resetAccumulation |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
     resetAccumulation |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
+    resetAccumulation |= ui::Checkbox("GBuffer Albedo Only", (bool*)&mShaderDebugOptions.showGBufferAlbedoOnly);
+    resetAccumulation |= ui::Checkbox("Direct Lighting Only", (bool*)&mShaderDebugOptions.showDirectLightingOnly);
+    resetAccumulation |= ui::Checkbox("Reflection Denoise Guide", (bool*)&mShaderDebugOptions.showReflectionDenoiseGuide);
     resetAccumulation |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
     resetAccumulation |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.1f, 10.0f);
     resetAccumulation |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
