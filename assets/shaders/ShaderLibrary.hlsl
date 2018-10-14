@@ -18,13 +18,7 @@
 
 RWTexture2D<float4> gOutput : register(u0);
 RaytracingAccelerationStructure SceneBVH : register(t0);
-cbuffer PerFrameConstants : register(b0)
-{
-    CameraParams cameraParams;
-    DebugOptions options;  
-    DirectionalLightParams directionalLight;
-    PointLightParams pointLight; 
-}
+ConstantBuffer<PerFrameConstants> perFrameConstants : register(b0);
 
 SamplerState defaultSampler : register(s0);
 
@@ -62,7 +56,7 @@ TextureCube envCubemap : register(t1, space2);
 [shader("raygeneration")] 
 void RayGen() 
 {
-    if (cameraParams.accumCount >= options.maxIterations) {
+    if (perFrameConstants.cameraParams.accumCount >= perFrameConstants.options.maxIterations) {
         return;
     }
 
@@ -74,11 +68,11 @@ void RayGen()
     payload.colorAndDistance = float4(0, 0, 0, 0);
     payload.depth = 0;
 
-    float2 jitter = cameraParams.jitters * 2.0;
+    float2 jitter = perFrameConstants.cameraParams.jitters * 2.0;
 
     RayDesc ray;
-    ray.Origin = cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
-    ray.Direction = normalize(d.x * cameraParams.U + (-d.y) * cameraParams.V + cameraParams.W).xyz;
+    ray.Origin = perFrameConstants.cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);
+    ray.Direction = normalize(d.x * perFrameConstants.cameraParams.U + (-d.y) * perFrameConstants.cameraParams.V + perFrameConstants.cameraParams.W).xyz;
     ray.TMin = 0;
     ray.TMax = RAY_MAX_T;
 
@@ -86,7 +80,7 @@ void RayGen()
 
     float4 prevColor = gOutput[launchIndex];
     float4 curColor = float4(pow(payload.colorAndDistance.rgb, 1.0f / 2.2f), 1.0f);
-    gOutput[launchIndex] = (cameraParams.accumCount * prevColor + curColor) / (cameraParams.accumCount + 1);
+    gOutput[launchIndex] = (perFrameConstants.cameraParams.accumCount * prevColor + curColor) / (perFrameConstants.cameraParams.accumCount + 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -161,13 +155,13 @@ float evaluateAO(float3 position, float3 normal)
 
     uint2 pixIdx = DispatchRaysIndex().xy;
     uint2 numPix = DispatchRaysDimensions().xy;
-    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, cameraParams.frameCount);
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, perFrameConstants.cameraParams.frameCount);
 
     for (int i = 0; i < aoRayCount; ++i) {
         float3 sampleDir;
         float NoL;
         float pdf;
-        if (options.cosineHemisphereSampling) {
+        if (perFrameConstants.options.cosineHemisphereSampling) {
             sampleDir = getCosHemisphereSample(randSeed, normal);
             NoL = saturate(dot(normal, sampleDir));
             pdf = NoL / M_PI;
@@ -184,17 +178,17 @@ float evaluateAO(float3 position, float3 normal)
 
 float3 evaluateDirectionalLight(float3 position, float3 normal, uint currentDepth)
 {
-    float3 L = normalize(-directionalLight.forwardDir.xyz);
+    float3 L = normalize(-perFrameConstants.directionalLight.forwardDir.xyz);
     float NoL = saturate(dot(normal, L));
 
     float visible = shootShadowRay(position, L, RAY_EPSILON, RAY_MAX_T, currentDepth);
 
-    return directionalLight.color.rgb * directionalLight.color.a * NoL * visible;
+    return perFrameConstants.directionalLight.color.rgb * perFrameConstants.directionalLight.color.a * NoL * visible;
 }
 
 float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
 {
-    float3 lightPath = pointLight.worldPos.xyz - position;
+    float3 lightPath = perFrameConstants.pointLight.worldPos.xyz - position;
     float lightDistance = length(lightPath);
     float3 L = normalize(lightPath);
     float NoL = saturate(dot(normal, L));
@@ -202,7 +196,7 @@ float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
     float visible = shootShadowRay(position, L, RAY_EPSILON, lightDistance, currentDepth);
 
     float falloff = 1.0 / (2 * M_PI * lightDistance * lightDistance);
-    return pointLight.color.rgb * pointLight.color.a * NoL * visible * falloff;
+    return perFrameConstants.pointLight.color.rgb * perFrameConstants.pointLight.color.a * NoL * visible * falloff;
 }
 
 float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSeed, uint currentDepth)
@@ -211,7 +205,7 @@ float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSe
     const int rayCount = 1;
 
     for (int i = 0; i < rayCount; ++i) {
-        if (options.cosineHemisphereSampling) {
+        if (perFrameConstants.options.cosineHemisphereSampling) {
             float3 sampleDir = getCosHemisphereSample(randSeed, normal);
             // float NoL = saturate(dot(normal, sampleDir));
             // float pdf = NoL / M_PI;
@@ -230,18 +224,18 @@ float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSe
 
 float3 shade(float3 position, float3 normal, uint currentDepth)
 {
-    if (options.showAmbientOcclusionOnly) {
+    if (perFrameConstants.options.showAmbientOcclusionOnly) {
         return evaluateAO(position, normal);
     }
 
     // Set up random seeed
     uint2 pixIdx = DispatchRaysIndex().xy;
     uint2 numPix = DispatchRaysDimensions().xy;
-    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, cameraParams.frameCount);
+    uint randSeed = initRand(pixIdx.x + pixIdx.y * numPix.x, perFrameConstants.cameraParams.frameCount);
 
     // Calculate direct diffuse lighting
     float3 directContrib = 0.0;
-    if (options.debug == 2) {
+    if (perFrameConstants.options.debug == 2) {
         const int numLights = 2;
         // Select light to evaluate in this iteration
         if (nextRand(randSeed) < 0.5) {
@@ -283,11 +277,11 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
  
     // Debug visualization
     if (currentDepth == 0) {
-        if (options.showIndirectDiffuseOnly) {
+        if (perFrameConstants.options.showIndirectDiffuseOnly) {
             return materialParams.albedo * indirectContrib / M_PI;
-        } else if (options.showIndirectSpecularOnly) {
+        } else if (perFrameConstants.options.showIndirectSpecularOnly) {
             return fresnel * materialParams.specular * specularComponent;
-        } else if (options.showFresnelTerm) {
+        } else if (perFrameConstants.options.showFresnelTerm) {
             return fresnel;
         }
     }
@@ -334,7 +328,7 @@ float3 sampleEnvironment()
     // float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
     // float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
 
-    return envSample.rgb * options.environmentStrength;
+    return envSample.rgb * perFrameConstants.options.environmentStrength;
 }
 
 [shader("miss")]
