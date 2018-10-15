@@ -1,7 +1,6 @@
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
 #include "nv_helpers_dx12/DXRHelper.h"
-#include "CompiledShaders/ShaderLibrary.hlsl.h"
 #include "DirectXRaytracingHelper.h"
 #include "ImGuiRendererDX.h"
 #include "GameInput.h"
@@ -34,7 +33,7 @@ void DXRFrameworkApp::OnInit()
         m_adapterIDoverride
     );
     m_deviceResources->RegisterDeviceNotify(this);
-    m_deviceResources->SetWindow(Win32Application::GetHwnd(), m_width, m_height);
+    m_deviceResources->SetWindow(Win32Application::GetHwnd(), GetWidth(), GetHeight());
     m_deviceResources->InitializeDXGIAdapter();
     mNativeDxrSupported = IsDirectXRaytracingSupported(m_deviceResources->GetAdapter());
     ThrowIfFalse(EnableComputeRaytracingFallback(m_deviceResources->GetAdapter()));
@@ -73,25 +72,11 @@ void DXRFrameworkApp::OnInit()
 
 void DXRFrameworkApp::InitRaytracing()
 {
-    // Create context
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
-    mRtContext = RtContext::create(device, commandList, false /* force compute */);
 
-    // Create program and state
-    RtProgram::Desc programDesc;
-    {
-        std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
-        programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
-        programDesc.setRayGen("RayGen");
-        programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
-        programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
-        programDesc.addMiss(2, "SecondaryMiss");
-    }
-    mRtProgram = RtProgram::create(mRtContext, programDesc);
-    mRtState = RtState::create(mRtContext); 
-    mRtState->setProgram(mRtProgram);
-    mRtState->setMaxTraceRecursionDepth(4);
+    mRtContext = RtContext::create(device, commandList, false /* force compute */);
+    mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
 
     // Create scene
     mRtScene = RtScene::create();
@@ -102,12 +87,9 @@ void DXRFrameworkApp::InitRaytracing()
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
     }
+    mRaytracingPipeline->setScene(mRtScene);
 
-    // Create bindings after scene is finalized
-    mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
-
-    // Create renderer
-    mRtRenderer = RtRenderer::create(mRtContext, mRtScene);
+    // Configure raytracing pipeline
     {
         RtRenderer::Material material1 = {};
         material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
@@ -123,16 +105,16 @@ void DXRFrameworkApp::InitRaytracing()
         material2.params.reflectivity = 1.0f;
         material2.params.type = 1;
 
-        mRtRenderer->addMaterial(material1);
-        mRtRenderer->addMaterial(material2);
+        mRaytracingPipeline->getRenderer()->addMaterial(material1);
+        mRaytracingPipeline->getRenderer()->addMaterial(material2);
     }
-    mRtRenderer->setCamera(mCamera);
-    mRtRenderer->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-    mRtRenderer->createOutputResource(m_deviceResources->GetBackBufferFormat(), m_width, m_height);
+    mRaytracingPipeline->getRenderer()->setCamera(mCamera);
+    mRaytracingPipeline->getRenderer()->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
+    mRaytracingPipeline->getRenderer()->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
     // Build acceleration structures
     commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
-    mRtScene->build(mRtContext, mRtProgram->getHitProgramCount());
+    mRaytracingPipeline->buildAccelerationStructures();
     m_deviceResources->ExecuteCommandList();
     m_deviceResources->WaitForGpu();
 }
@@ -150,7 +132,7 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    mRtRenderer->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), m_width, m_height);
+    mRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
 }
 
 void DXRFrameworkApp::OnRender()
@@ -162,7 +144,7 @@ void DXRFrameworkApp::OnRender()
     auto commandList = m_deviceResources->GetCommandList();
 
     if (mRaytracingEnabled) {
-        mRtRenderer->render(commandList, mRtBindings, mRtState, m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+        mRaytracingPipeline->render(commandList, m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
         CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
     } else {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
@@ -220,7 +202,7 @@ void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES tra
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
-    auto outputResource = mRtRenderer->getOutputResource();
+    auto outputResource = mRaytracingPipeline->getRenderer()->getOutputResource();
 
     D3D12_RESOURCE_BARRIER preCopyBarriers[2];
     preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);

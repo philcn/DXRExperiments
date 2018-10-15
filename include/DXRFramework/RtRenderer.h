@@ -15,17 +15,13 @@ namespace DXRFramework
         using SharedPtr = std::shared_ptr<RtRenderer>;
 
         static SharedPtr create(RtContext::SharedPtr context, RtScene::SharedPtr scene) { return SharedPtr(new RtRenderer(context, scene)); }
-
         ~RtRenderer();
 
         void update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height);
-
         void render(ID3D12GraphicsCommandList *commandList, RtBindings::SharedPtr bindings, RtState::SharedPtr state, UINT frameIndex, UINT width, UINT height);
 
         void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount);
-
         void createOutputResource(DXGI_FORMAT format, UINT width, UINT height);
-
         ID3D12Resource *getOutputResource() { return mOutputResource.Get(); }
 
         struct Material 

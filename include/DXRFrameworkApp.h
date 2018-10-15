@@ -1,12 +1,9 @@
 #pragma once
 
 #include "DXSample.h"
-#include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtContext.h"
-#include "DXRFramework/RtProgram.h"
-#include "DXRFramework/RtRenderer.h"
 #include "DXRFramework/RtScene.h"
-#include "DXRFramework/RtState.h"
+#include "ProgressiveRaytracingPipeline.h"
 #include "Camera.h"
 #include "CameraController.h"
 
@@ -35,12 +32,8 @@ private:
     std::shared_ptr<GameCore::CameraController> mCamController;
 
     DXRFramework::RtContext::SharedPtr mRtContext;
-    DXRFramework::RtRenderer::SharedPtr mRtRenderer;
     DXRFramework::RtScene::SharedPtr mRtScene;
-
-    DXRFramework::RtProgram::SharedPtr mRtProgram;
-    DXRFramework::RtBindings::SharedPtr mRtBindings;
-    DXRFramework::RtState::SharedPtr mRtState;
+    ProgressiveRaytracingPipeline::SharedPtr mRaytracingPipeline;
 
     void InitRaytracing();
     void CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);

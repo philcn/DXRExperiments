@@ -413,6 +413,15 @@
     <ClInclude Include="..\include\DXRFramework\RtRenderer.h">
       <Filter>Header Files\DXRFramework</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\RealtimeRaytracingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\DenoiseCompositer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -510,6 +519,15 @@
     </ClCompile>
     <ClCompile Include="..\src\DXRFramework\RtRenderer.cpp">
       <Filter>Source Files\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\ProgressiveRaytracingPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\RealtimeRaytracingPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\DenoiseCompositer.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

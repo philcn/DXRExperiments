@@ -126,6 +126,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
   <ItemGroup>
     <ClInclude Include="..\assets\shaders\HlslCompat.h" />
     <ClInclude Include="..\assets\shaders\RaytracingHlslCompat.h" />
+    <ClInclude Include="..\include\DenoiseCompositer.h" />
     <ClInclude Include="..\include\dxcapi.h" />
     <ClInclude Include="..\include\dxcapi.use.h" />
     <ClInclude Include="..\include\DXRFrameworkApp.h" />
@@ -144,6 +145,8 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\nv_helpers_dx12\RootSignatureGenerator.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\ShaderBindingTableGenerator.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\TopLevelASGenerator.h" />
+    <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h" />
+    <ClInclude Include="..\include\RealtimeRaytracingPipeline.h" />
     <ClInclude Include="..\include\stdafx.h" />
     <ClInclude Include="..\include\utils\DeviceResources.h" />
     <ClInclude Include="..\include\utils\DirectXRaytracingHelper.h" />
@@ -256,6 +259,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClCompile Include="..\libs\MiniEngine\Math\Random.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\src\DenoiseCompositer.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtParams.cpp" />
     <ClInclude Include="..\libs\imgui\imconfig.h" />
     <ClInclude Include="..\libs\imgui\imgui.h" />
@@ -349,6 +353,8 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </PrecompiledHeaderOutputFile>
     </ClCompile>
+    <ClCompile Include="..\src\ProgressiveRaytracingPipeline.cpp" />
+    <ClCompile Include="..\src\RealtimeRaytracingPipeline.cpp" />
     <ClCompile Include="..\src\stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
