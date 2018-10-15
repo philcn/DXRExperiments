@@ -410,9 +410,6 @@
     <ClInclude Include="..\libs\imgui\imgui_impl_win32.h">
       <Filter>Libs\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtRenderer.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -516,9 +513,6 @@
     </ClCompile>
     <ClCompile Include="..\libs\imgui\imgui_impl_win32.cpp">
       <Filter>Libs\imgui</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtRenderer.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
     </ClCompile>
     <ClCompile Include="..\src\ProgressiveRaytracingPipeline.cpp">
       <Filter>Source Files</Filter>

@@ -91,26 +91,26 @@ void DXRFrameworkApp::InitRaytracing()
 
     // Configure raytracing pipeline
     {
-        RtRenderer::Material material1 = {};
+        ProgressiveRaytracingPipeline::Material material1 = {};
         material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
         material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
         material1.params.roughness = 0.05f;
         material1.params.reflectivity = 0.75f;
         material1.params.type = 1; 
 
-        RtRenderer::Material material2 = {};
+        ProgressiveRaytracingPipeline::Material material2 = {};
         material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
         material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
         material2.params.roughness = 0.005f;
         material2.params.reflectivity = 1.0f;
         material2.params.type = 1;
 
-        mRaytracingPipeline->getRenderer()->addMaterial(material1);
-        mRaytracingPipeline->getRenderer()->addMaterial(material2);
+        mRaytracingPipeline->addMaterial(material1);
+        mRaytracingPipeline->addMaterial(material2);
     }
-    mRaytracingPipeline->getRenderer()->setCamera(mCamera);
-    mRaytracingPipeline->getRenderer()->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-    mRaytracingPipeline->getRenderer()->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+    mRaytracingPipeline->setCamera(mCamera);
+    mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
+    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
     // Build acceleration structures
     commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
@@ -202,7 +202,7 @@ void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES tra
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
-    auto outputResource = mRaytracingPipeline->getRenderer()->getOutputResource();
+    auto outputResource = mRaytracingPipeline->getOutputResource();
 
     D3D12_RESOURCE_BARRIER preCopyBarriers[2];
     preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
