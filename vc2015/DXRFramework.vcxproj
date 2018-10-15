@@ -134,6 +134,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\DXRFramework\RtModel.h" />
     <ClInclude Include="..\include\DXRFramework\RtParams.h" />
     <ClInclude Include="..\include\DXRFramework\RtProgram.h" />
+    <ClInclude Include="..\include\DXRFramework\RtRenderer.h" />
     <ClInclude Include="..\include\DXRFramework\RtScene.h" />
     <ClInclude Include="..\include\DXRFramework\RtShader.h" />
     <ClInclude Include="..\include\DXRFramework\RtState.h" />
@@ -283,6 +284,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClCompile Include="..\src\DXRFramework\RtContext.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtModel.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtProgram.cpp" />
+    <ClCompile Include="..\src\DXRFramework\RtRenderer.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtScene.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtShader.cpp" />
     <ClCompile Include="..\src\DXRFramework\RtState.cpp" />

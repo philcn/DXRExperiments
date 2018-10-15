@@ -2,11 +2,9 @@
 #include "DXRFrameworkApp.h"
 #include "nv_helpers_dx12/DXRHelper.h"
 #include "CompiledShaders/ShaderLibrary.hlsl.h"
-#include "GameInput.h"
-#include "WICTextureLoader.h"
-#include "DDSTextureLoader.h"
-#include "ResourceUploadBatch.h"
+#include "DirectXRaytracingHelper.h"
 #include "ImGuiRendererDX.h"
+#include "GameInput.h"
 
 using namespace std;
 using namespace DXRFramework;
@@ -16,31 +14,10 @@ namespace GameCore
     extern HWND g_hWnd; 
 }
 
-bool forceComputePath = false;
-bool staticMode = true;
-
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mRaytracingEnabled(true),
-    mFrameAccumulationEnabled(false),
-    mAnimationPaused(false)
+    mRaytracingEnabled(true)
 {
-    mShaderDebugOptions.maxIterations = 1024;
-    mShaderDebugOptions.cosineHemisphereSampling = true;
-    mShaderDebugOptions.showIndirectDiffuseOnly = false;
-    mShaderDebugOptions.showIndirectSpecularOnly = false;
-    mShaderDebugOptions.showAmbientOcclusionOnly = false;
-    mShaderDebugOptions.showGBufferAlbedoOnly = false;
-    mShaderDebugOptions.showDirectLightingOnly = false;
-    mShaderDebugOptions.showReflectionDenoiseGuide = false;
-    mShaderDebugOptions.showFresnelTerm = false;
-    mShaderDebugOptions.environmentStrength = 1.0f;
-    mShaderDebugOptions.debug = 0;
-
-    auto now = std::chrono::high_resolution_clock::now();
-    auto msTime = std::chrono::time_point_cast<std::chrono::milliseconds>(now);
-    mRng = std::mt19937(uint32_t(msTime.time_since_epoch().count()));
-
     UpdateForSizeChange(width, height);
 }
 
@@ -67,21 +44,25 @@ void DXRFrameworkApp::OnInit()
 
     GameInput::Initialize();
 
-    if (staticMode) {
-        mAnimationPaused = true;
-    }
+    // Initialize texture loader
+    #if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
+        Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
+        ThrowIfFailed(initialize, L"Cannot initialize WIC");
+    #else
+        #error Unsupported Windows version
+    #endif
 
-    mCamera.SetEyeAtUp(Math::Vector3(1.0, 1.2, 4.0), Math::Vector3(0.0, 0.5, 0.0), Math::Vector3(Math::kYUnitVector));
-    mCamera.SetZRange(1.0f, 10000.0f);
-    mCamController.reset(new GameCore::CameraController(mCamera, mCamera.GetUpVec()));
+    // Setup camera states
+    mCamera.reset(new Math::Camera());
+    mCamera->SetAspectRatio(m_aspectRatio);
+    mCamera->SetEyeAtUp(Math::Vector3(1.0, 1.2, 4.0), Math::Vector3(0.0, 0.5, 0.0), Math::Vector3(Math::kYUnitVector));
+    mCamera->SetZRange(1.0f, 10000.0f);
+    mCamController.reset(new GameCore::CameraController(*mCamera, mCamera->GetUpVec()));
     mCamController->EnableFirstPersonMouse(false);
-
+ 
     InitRaytracing();
-    BuildAccelerationStructures();
 
-    CreateRaytracingOutputBuffer();
-    CreateConstantBuffers();
-
+    // Initialize UI renderer
     ui::RendererDX::Initialize(GameCore::g_hWnd, m_deviceResources->GetD3DDevice(), m_deviceResources->GetBackBufferFormat(), FrameCount, [&] () {
         D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle;
         UINT heapOffset = mRtContext->allocateDescriptor(&cpuHandle);
@@ -90,337 +71,78 @@ void DXRFrameworkApp::OnInit()
     }); 
 }
 
-static ComPtr<ID3D12Resource> sTextureResources[2];
-static D3D12_GPU_DESCRIPTOR_HANDLE sTextureGpuHandle[2];
-
 void DXRFrameworkApp::InitRaytracing()
 {
+    // Create context
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
-    mRtContext = RtContext::create(device, commandList, forceComputePath);
+    mRtContext = RtContext::create(device, commandList, false /* force compute */);
 
+    // Create program and state
     RtProgram::Desc programDesc;
-    std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
-    programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
-    programDesc.setRayGen("RayGen");
-    programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
-    programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
-    programDesc.addMiss(2, "SecondaryMiss");
+    {
+        std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
+        programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
+        programDesc.setRayGen("RayGen");
+        programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
+        programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
+        programDesc.addMiss(2, "SecondaryMiss");
+    }
     mRtProgram = RtProgram::create(mRtContext, programDesc);
-
     mRtState = RtState::create(mRtContext); 
     mRtState->setProgram(mRtProgram);
     mRtState->setMaxTraceRecursionDepth(4);
 
+    // Create scene
     mRtScene = RtScene::create();
-
-    // Setup scene
     {
         auto identity = DirectX::XMMatrixIdentity();
 
         // working directory is "vc2015"
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
+    }
 
-        Material material1 = {};
+    // Create bindings after scene is finalized
+    mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
+
+    // Create renderer
+    mRtRenderer = RtRenderer::create(mRtContext, mRtScene);
+    {
+        RtRenderer::Material material1 = {};
         material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
         material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
         material1.params.roughness = 0.05f;
         material1.params.reflectivity = 0.75f;
         material1.params.type = 1; 
 
-        Material material2 = {};
+        RtRenderer::Material material2 = {};
         material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
         material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
         material2.params.roughness = 0.005f;
         material2.params.reflectivity = 1.0f;
         material2.params.type = 1;
 
-        mMaterials.push_back(material1);
-        mMaterials.push_back(material2);
+        mRtRenderer->addMaterial(material1);
+        mRtRenderer->addMaterial(material2);
     }
+    mRtRenderer->setCamera(mCamera);
+    mRtRenderer->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
+    mRtRenderer->createOutputResource(m_deviceResources->GetBackBufferFormat(), m_width, m_height);
 
-    mRtBindings = RtBindings::create(mRtContext, mRtProgram, mRtScene);
-
-    // Setup texture loader
-    #if (_WIN32_WINNT >= 0x0A00 /*_WIN32_WINNT_WIN10*/)
-        Microsoft::WRL::Wrappers::RoInitializeWrapper initialize(RO_INIT_MULTITHREADED);
-        ThrowIfFailed(initialize, L"Cannot initialize WIC");
-    #else
-        #error Unsupported Windows version
-    #endif
-
-    // Load textures
-    {
-        ResourceUploadBatch resourceUpload(device);
-        resourceUpload.Begin();
-        ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\HdrStudioProductNightStyx001_JPG_8K.jpg", &sTextureResources[0], true));
-        ThrowIfFailed(CreateDDSTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\CathedralRadiance.dds", &sTextureResources[1]));
-
-        auto uploadResourcesFinished = resourceUpload.End(m_deviceResources->GetCommandQueue());
-        uploadResourcesFinished.wait();
-
-        sTextureGpuHandle[0] = mRtContext->createTextureSRVHandle(sTextureResources[0].Get());
-        sTextureGpuHandle[1] = mRtContext->createTextureSRVHandle(sTextureResources[1].Get(), true);
-    }
-}
-
-void DXRFrameworkApp::BuildAccelerationStructures()
-{
-    auto commandList = m_deviceResources->GetCommandList();
-    auto commandAllocator = m_deviceResources->GetCommandAllocator();
-
-    commandList->Reset(commandAllocator, nullptr);
-
+    // Build acceleration structures
+    commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
     mRtScene->build(mRtContext, mRtProgram->getHitProgramCount());
-
     m_deviceResources->ExecuteCommandList();
     m_deviceResources->WaitForGpu();
 }
-
-void DXRFrameworkApp::CreateRaytracingOutputBuffer()
-{
-    auto device = m_deviceResources->GetD3DDevice();
-    auto backbufferFormat = m_deviceResources->GetBackBufferFormat();
-
-    AllocateUAVTexture(device, backbufferFormat, m_width, m_height, &mOutputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE uavDescriptorHandle;
-    UINT outputResourceUAVDescriptorHeapIndex = mRtContext->allocateDescriptor(&uavDescriptorHandle, UINT_MAX);
-    D3D12_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
-    UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &UAVDesc, uavDescriptorHandle);
-    mOutputResourceUAVGpuDescriptor = mRtContext->getDescriptorGPUHandle(outputResourceUAVDescriptorHeapIndex);
-}
-
-void DXRFrameworkApp::CreateConstantBuffers()
-{
-    auto device = m_deviceResources->GetD3DDevice();
-
-    mAlignedPerFrameConstantBufferSize = CalculateConstantBufferByteSize(sizeof(PerFrameConstants));
-    auto allocationSize = mAlignedPerFrameConstantBufferSize * FrameCount;
-
-    mPerFrameConstantBuffer = nv_helpers_dx12::CreateBuffer(device, allocationSize, D3D12_RESOURCE_FLAG_NONE,
-        D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE cbvDescriptorHandle;
-    UINT descriptorHeapIndex = mRtContext->allocateDescriptor(&cbvDescriptorHandle);
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-    cbvDesc.BufferLocation = mPerFrameConstantBuffer->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = allocationSize;
-    device->CreateConstantBufferView(&cbvDesc, cbvDescriptorHandle);
-    mPerFrameCBVGpuHandle = mRtContext->getDescriptorGPUHandle(descriptorHeapIndex); 
-
-    // Map the constant buffer and cache its heap pointers. We don't unmap this until the app closes.
-    CD3DX12_RANGE readRange(0, 0); // We do not intend to read from this resource on the CPU.
-    ThrowIfFailed(mPerFrameConstantBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mMappedPerFrameConstantsData)));
-}
-
-inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XMFLOAT4 *U, XMFLOAT4 *V, XMFLOAT4 *W)
-{
-    float ulen, vlen, wlen;
-    XMVECTOR w = camera.GetForwardVec(); // Do not normalize W -- it implies focal length
-
-    wlen = XMVectorGetX(XMVector3Length(w));
-    XMVECTOR u = XMVector3Normalize(XMVector3Cross(w, camera.GetUpVec()));
-    XMVECTOR v = XMVector3Normalize(XMVector3Cross(u, w));
-
-    vlen = wlen * tanf(0.5f * camera.GetFOV());
-    ulen = vlen * aspectRatio;
-    u = XMVectorScale(u, ulen);
-    v = XMVectorScale(v, vlen);
-
-    XMStoreFloat4(U, u);
-    XMStoreFloat4(V, v);
-    XMStoreFloat4(W, w);
-}
-
-void DXRFrameworkApp::UpdatePerFrameConstants(float elapsedTime)
-{
-    if (staticMode) {
-        elapsedTime = 142.0f;
-    }
-
-    if (HasCameraMoved() || !mFrameAccumulationEnabled) {
-        mAccumCount = 0;
-        mLastCameraVPMatrix = mCamera.GetViewProjMatrix();
-    }
-
-    PerFrameConstants constants = {};
-
-    // Reuse constants for last frame
-    auto prevFrameIndex = m_deviceResources->GetPreviousFrameIndex();
-    memcpy(&constants, (uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * prevFrameIndex, sizeof(constants));
-
-    // Populate camera parameters
-    XMStoreFloat4(&constants.cameraParams.worldEyePos, mCamera.GetPosition());
-    calculateCameraVariables(mCamera, m_aspectRatio, &constants.cameraParams.U, &constants.cameraParams.V, &constants.cameraParams.W);
-
-    float xJitter = (mRngDist(mRng) - 0.5f) / float(m_width);
-    float yJitter = (mRngDist(mRng) - 0.5f) / float(m_height);
-    constants.cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
-    constants.cameraParams.frameCount = GetFrameCount();
-    constants.cameraParams.accumCount = mAccumCount++;
-
-    constants.options = mShaderDebugOptions;
-
-    ui::Begin("Lighting");
-    {
-        static XMFLOAT4 pointLightColor = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
-        static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
-        ui::ColorPicker4("Point Light", (float*)&pointLightColor);
-        ui::ColorPicker4("Directional Light", (float*)&dirLightColor);
-
-        constants.directionalLight.color = dirLightColor;
-        constants.pointLight.color = pointLightColor;
-    }
-    ui::End();
-
-    if (staticMode || !mAnimationPaused) {
-        // Populate lights
-        XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
-        XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
-        dirLightVector = XMVector4Transform(dirLightVector, rotation);
-        XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
-
-        // XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
-        // pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
-        // pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
-        XMVECTOR pointLightPos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
-    }
-
-    auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
-    memcpy((uint8_t*)mMappedPerFrameConstantsData + mAlignedPerFrameConstantBufferSize * frameIndex, &constants, sizeof(constants));
-}
-
-bool DXRFrameworkApp::HasCameraMoved()
-{
-    const Math::Matrix4 &currentMatrix = mCamera.GetViewProjMatrix();
-    return !(XMVector4Equal(mLastCameraVPMatrix.GetX(), currentMatrix.GetX()) &&
-             XMVector4Equal(mLastCameraVPMatrix.GetY(), currentMatrix.GetY()) &&
-             XMVector4Equal(mLastCameraVPMatrix.GetZ(), currentMatrix.GetZ()) &&
-             XMVector4Equal(mLastCameraVPMatrix.GetW(), currentMatrix.GetW()));
-}
-
-void DXRFrameworkApp::ResetAccumulation()
-{
-    mLastCameraVPMatrix = Math::Matrix4();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void DXRFrameworkApp::DoRaytracing()
-{
-    auto commandList = m_deviceResources->GetCommandList();
-    commandList->SetComputeRootSignature(mRtProgram->getGlobalRootSignature());
-    mRtContext->bindDescriptorHeap();
-
-    // Populate shader table root arguments
-    for (int rayType = 0; rayType < mRtProgram->getHitProgramCount(); ++rayType) {
-        for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
-            auto &hitVars = mRtBindings->getHitVars(rayType, instance);
-
-            D3D12_GPU_DESCRIPTOR_HANDLE vbSrvHandle = mRtScene->getModel(instance)->getVertexBufferSrvHandle();
-            D3D12_GPU_DESCRIPTOR_HANDLE ibSrvHandle = mRtScene->getModel(instance)->getIndexBufferSrvHandle();
-            hitVars->appendHeapRanges(vbSrvHandle.ptr);
-            hitVars->appendHeapRanges(ibSrvHandle.ptr);
-
-            const Material &material = mMaterials[instance];
-            hitVars->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
-        }
-    }
-
-    for (int rayType = 0; rayType < mRtProgram->getMissProgramCount(); ++rayType) {
-        auto &missVars = mRtBindings->getMissVars(rayType);
-        missVars->appendHeapRanges(sTextureGpuHandle[0].ptr);
-        missVars->appendHeapRanges(sTextureGpuHandle[1].ptr);
-    }
-
-    mRtBindings->apply(mRtContext, mRtState);
-
-    // Set global root arguments
-    auto frameIndex = m_deviceResources->GetCurrentFrameIndex();
-    auto cbGpuAddress = mPerFrameConstantBuffer->GetGPUVirtualAddress() + mAlignedPerFrameConstantBufferSize * frameIndex;
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PerFrameConstantsSlot, cbGpuAddress);
-
-    commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputResourceUAVGpuDescriptor);
-    mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
-
-    mRtContext->raytrace(mRtBindings, mRtState, GetWidth(), GetHeight(), 3);
-}
-
-void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
-{
-    auto commandList= m_deviceResources->GetCommandList();
-    auto renderTarget = m_deviceResources->GetRenderTarget();
-
-    D3D12_RESOURCE_BARRIER preCopyBarriers[2];
-    preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(mOutputResource.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
-
-    commandList->CopyResource(renderTarget, mOutputResource.Get());
-
-    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
-    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, transitionToState);
-    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(mOutputResource.Get(), D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
-}
-
-void DXRFrameworkApp::UserInterface()
-{
-    bool resetAccumulation = false;
-    resetAccumulation |= ui::Checkbox("Raytracing/Rasterization", &mRaytracingEnabled);
-    resetAccumulation |= ui::Checkbox("Pause Animation", &mAnimationPaused);
-
-    ui::Separator();
-
-    if (ui::Checkbox("Frame Accumulation", &mFrameAccumulationEnabled)) {
-        mAnimationPaused = true;
-        resetAccumulation = true;
-    }
-
-    if (mFrameAccumulationEnabled) {
-        int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
-        int oldMaxIterations = mShaderDebugOptions.maxIterations;
-        if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
-            resetAccumulation |= (mShaderDebugOptions.maxIterations < mAccumCount);
-            mAccumCount = min(mAccumCount, oldMaxIterations);
-        }
-        ui::ProgressBar(float(currentIterations) / float(mShaderDebugOptions.maxIterations), ImVec2(), std::to_string(currentIterations).c_str());
-    }
-
-    ui::Separator();
-
-    resetAccumulation |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
-    resetAccumulation |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
-    resetAccumulation |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
-    resetAccumulation |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
-    resetAccumulation |= ui::Checkbox("GBuffer Albedo Only", (bool*)&mShaderDebugOptions.showGBufferAlbedoOnly);
-    resetAccumulation |= ui::Checkbox("Direct Lighting Only", (bool*)&mShaderDebugOptions.showDirectLightingOnly);
-    resetAccumulation |= ui::Checkbox("Reflection Denoise Guide", (bool*)&mShaderDebugOptions.showReflectionDenoiseGuide);
-    resetAccumulation |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
-    resetAccumulation |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.1f, 10.0f);
-    resetAccumulation |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
-
-    ui::Separator();
-
-    ui::Text("Press space to toggle first person camera");
-
-    if (resetAccumulation) ResetAccumulation();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void DXRFrameworkApp::OnUpdate()
 {
     DXSample::OnUpdate();
 
-    // Prepare UI draw list
+    // Begin recording UI draw list
     ui::RendererDX::NewFrame();
-    UserInterface();
 
     float elapsedTime = static_cast<float>(mTimer.GetTotalSeconds());
     float deltaTime = static_cast<float>(mTimer.GetElapsedSeconds());
@@ -428,20 +150,19 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    UpdatePerFrameConstants(elapsedTime);
+    mRtRenderer->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), m_width, m_height);
 }
 
 void DXRFrameworkApp::OnRender()
 {
-    if (!m_deviceResources->IsWindowVisible()) {
-        return;
-    }
+    if (!m_deviceResources->IsWindowVisible()) return;
 
+    // Reset command list
     m_deviceResources->Prepare();
-    auto commandList= m_deviceResources->GetCommandList();
+    auto commandList = m_deviceResources->GetCommandList();
 
     if (mRaytracingEnabled) {
-        DoRaytracing();
+        mRtRenderer->render(commandList, mRtBindings, mRtState, m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
         CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
     } else {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
@@ -461,6 +182,7 @@ void DXRFrameworkApp::OnRender()
         ui::RendererDX::Render(commandList);
     }
 
+    // Execute command list and insert fence
     m_deviceResources->Present(D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
@@ -469,11 +191,6 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
     switch (key) {
     case 'F':
         mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
-        break;
-    case VK_SPACE:
-        mAnimationPaused ^= true;
-        mFrameAccumulationEnabled = mAnimationPaused;
-        ResetAccumulation();
         break;
     }
 }
@@ -484,8 +201,6 @@ void DXRFrameworkApp::OnDestroy()
 
     ui::RendererDX::Shutdown();
     GameInput::Shutdown();
-
-    mOutputResource.Reset();
 }
 
 void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
@@ -496,8 +211,29 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     UpdateForSizeChange(width, height);
 
-    mOutputResource.Reset();
-    CreateRaytracingOutputBuffer();
+    // TODO:
+    // mOutputResource.Reset();
+    // CreateRaytracingOutputBuffer();
+}
+
+void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
+{
+    auto commandList= m_deviceResources->GetCommandList();
+    auto renderTarget = m_deviceResources->GetRenderTarget();
+    auto outputResource = mRtRenderer->getOutputResource();
+
+    D3D12_RESOURCE_BARRIER preCopyBarriers[2];
+    preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(outputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+
+    commandList->CopyResource(renderTarget, outputResource);
+
+    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
+    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, transitionToState);
+    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(outputResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }
 
 LRESULT DXRFrameworkApp::WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

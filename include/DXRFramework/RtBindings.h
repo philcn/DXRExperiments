@@ -30,6 +30,8 @@ namespace DXRFramework
         const RtParams::SharedPtr& getMissVars(uint32_t rayID) { return mMissParams[rayID]; }
         const RtParams::SharedPtr& getGlobalVars() { return mGlobalParams; }
 
+        const RtProgram::SharedPtr& getProgram() { return mProgram; }
+
     private:
         RtBindings(RtContext::SharedPtr context, RtProgram::SharedPtr program, RtScene::SharedPtr scene); 
         bool init(RtContext::SharedPtr context);

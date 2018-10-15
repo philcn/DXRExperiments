@@ -98,6 +98,7 @@ namespace Math
         void ReverseZ( bool enable ) { m_ReverseZ = enable; UpdateProjMatrix(); }
 
         float GetFOV() const { return m_VerticalFOV; }
+        float GetAspectRatio() const { return m_AspectRatio; }
         float GetNearClip() const { return m_NearClip; }
         float GetFarClip() const { return m_FarClip; }
         float GetClearDepth() const { return m_ReverseZ ? 0.0f : 1.0f; }

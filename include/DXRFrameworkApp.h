@@ -1,17 +1,14 @@
 #pragma once
 
 #include "DXSample.h"
-#include "DirectXRaytracingHelper.h" // for AccelerationStructureBuffers
+#include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtProgram.h"
-#include "DXRFramework/RtState.h"
-#include "DXRFramework/RtBindings.h"
+#include "DXRFramework/RtRenderer.h"
 #include "DXRFramework/RtScene.h"
-#include "RaytracingHlslCompat.h"
+#include "DXRFramework/RtState.h"
 #include "Camera.h"
 #include "CameraController.h"
-#include <vector>
-#include <random>
 
 class DXRFrameworkApp : public DXSample
 {
@@ -33,59 +30,18 @@ private:
 
     bool mNativeDxrSupported;
     bool mRaytracingEnabled;
-    bool mFrameAccumulationEnabled;
-    bool mAnimationPaused;
-    DebugOptions mShaderDebugOptions;
 
-    ////////////////////////////////////////////////////////////////////////////////
-
-    Math::Camera mCamera;
+    std::shared_ptr<Math::Camera> mCamera;
     std::shared_ptr<GameCore::CameraController> mCamController;
-    Math::Matrix4 mLastCameraVPMatrix;
-    UINT mAccumCount;
-
-    std::mt19937 mRng;
-    std::uniform_real_distribution<float> mRngDist;     
-
-    ////////////////////////////////////////////////////////////////////////////////
-
-    ComPtr<ID3D12Resource> mOutputResource;
-    D3D12_GPU_DESCRIPTOR_HANDLE mOutputResourceUAVGpuDescriptor;
-
-    UINT mAlignedPerFrameConstantBufferSize;
-    ComPtr<ID3D12Resource> mPerFrameConstantBuffer;
-    D3D12_GPU_DESCRIPTOR_HANDLE mPerFrameCBVGpuHandle;
-    void *mMappedPerFrameConstantsData;
-
-    ////////////////////////////////////////////////////////////////////////////////
 
     DXRFramework::RtContext::SharedPtr mRtContext;
-    DXRFramework::RtProgram::SharedPtr mRtProgram;
-    DXRFramework::RtState::SharedPtr mRtState;
-    DXRFramework::RtBindings::SharedPtr mRtBindings;
+    DXRFramework::RtRenderer::SharedPtr mRtRenderer;
     DXRFramework::RtScene::SharedPtr mRtScene;
 
-    struct Material {
-        MaterialParams params;
-        // textures
-    };
-    std::vector<Material> mMaterials;
-
-    ////////////////////////////////////////////////////////////////////////////////
+    DXRFramework::RtProgram::SharedPtr mRtProgram;
+    DXRFramework::RtBindings::SharedPtr mRtBindings;
+    DXRFramework::RtState::SharedPtr mRtState;
 
     void InitRaytracing();
-    void BuildAccelerationStructures();
-
-    void DoRaytracing();
-
-    void CreateRaytracingOutputBuffer();
     void CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);
-
-    void CreateConstantBuffers();
-    void UpdatePerFrameConstants(float elapsedTime);
-
-    bool HasCameraMoved();
-    void ResetAccumulation();
-
-    void UserInterface();
 };
