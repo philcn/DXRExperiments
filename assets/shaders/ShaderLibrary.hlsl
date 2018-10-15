@@ -193,7 +193,7 @@ float3 evaluatePointLight(float3 position, float3 normal, uint currentDepth)
     float3 L = normalize(lightPath);
     float NoL = saturate(dot(normal, L));
 
-    float visible = shootShadowRay(position, L, RAY_EPSILON, lightDistance, currentDepth);
+    float visible = shootShadowRay(position, L, RAY_EPSILON, lightDistance - RAY_EPSILON, currentDepth);
 
     float falloff = 1.0 / (2 * M_PI * lightDistance * lightDistance);
     return perFrameConstants.pointLight.color.rgb * perFrameConstants.pointLight.color.a * NoL * visible * falloff;
