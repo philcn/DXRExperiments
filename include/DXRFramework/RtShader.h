@@ -1,8 +1,11 @@
 #pragma once
 #include "RtContext.h"
+#include "nv_helpers_dx12/RootSignatureGenerator.h"
 
 namespace DXRFramework
 {
+    using nv_helpers_dx12::RootSignatureGenerator;
+
     enum class RtShaderType
     {
         RayGeneration,  ///< Ray generation shader
@@ -19,15 +22,19 @@ namespace DXRFramework
     public:
         using SharedPtr = std::shared_ptr<RtShader>;
 
-        static SharedPtr create(RtContext::SharedPtr context, /* library ,*/ RtShaderType shaderType, const std::string &entryPoint, uint32_t maxPayloadSize, uint32_t maxAttributesSize);
-        ~RtShader();
+        static SharedPtr create(
+            RtContext::SharedPtr context, /* library ,*/ RtShaderType shaderType, const std::string &entryPoint, 
+            uint32_t maxPayloadSize, uint32_t maxAttributesSize, RootSignatureGenerator rootSignatureConfig);
 
         std::string getEntryPoint() const { return mEntryPoint; }
 
+        ~RtShader();
     private:
         friend class RtState;
 
-        RtShader(RtContext::SharedPtr context, /* library ,*/ RtShaderType shaderType, const std::string &entryPoint, uint32_t maxPayloadSize, uint32_t maxAttributesSize);
+        RtShader(
+            RtContext::SharedPtr context, /* library ,*/ RtShaderType shaderType, const std::string &entryPoint, 
+            uint32_t maxPayloadSize, uint32_t maxAttributesSize, RootSignatureGenerator rootSignatureConfig);
 
         RtShaderType mShaderType;
         std::string mEntryPoint;
@@ -35,11 +42,9 @@ namespace DXRFramework
         uint32_t mMaxPayloadSize;
         uint32_t mMaxAttributesSize;
 
-        // Library reference
+        // TODO: Library reference
 
         ID3D12RaytracingFallbackDevice *mFallbackDevice;
         ComPtr<ID3D12RootSignature> mLocalRootSignature;
-
-        ID3D12RootSignature *TempCreateLocalRootSignature();
     };
 }

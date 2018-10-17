@@ -14,6 +14,17 @@ using namespace DXRFramework;
 static XMFLOAT4 pointLightColor = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
 static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
 
+namespace GlobalRootSignatureParams 
+{
+    enum Value 
+    {
+        AccelerationStructureSlot = 0,
+        OutputViewSlot,
+        PerFrameConstantsSlot,
+        Count 
+    };
+}
+
 ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPtr context) :
     mRtContext(context),
     mOutputUavHeapIndex(UINT_MAX),
@@ -28,6 +39,32 @@ ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPt
         programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
         programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
         programDesc.addMiss(2, "SecondaryMiss");
+        programDesc.configureGlobalRootSignature([] (RootSignatureGenerator &config) {
+            // GlobalRootSignatureParams::AccelerationStructureSlot
+            config.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0 /* t0 */); 
+            // GlobalRootSignatureParams::OutputViewSlot
+            config.AddHeapRangesParameter({{0 /* u0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0}}); 
+            // GlobalRootSignatureParams::PerFrameConstantsSlot
+            config.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /* b0 */); 
+
+            D3D12_STATIC_SAMPLER_DESC cubeSampler = {};
+            cubeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+            cubeSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+            cubeSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+            cubeSampler.ShaderRegister = 0;
+            config.AddStaticSampler(cubeSampler);
+        });
+        programDesc.configureHitGroupRootSignature([] (RootSignatureGenerator &config) {
+            config.AddHeapRangesParameter({{0 /* t0 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            config.AddHeapRangesParameter({{1 /* t1 */, 1, 1 /* space1 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            config.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 0, 1, SizeOfInUint32(MaterialParams)); // space1 b0
+        });
+        programDesc.configureMissRootSignature([] (RootSignatureGenerator &config) {
+            config.AddHeapRangesParameter({{0 /* t0 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            config.AddHeapRangesParameter({{1 /* t1 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+        });
     }
     mRtProgram = RtProgram::create(context, programDesc);
     mRtState = RtState::create(context); 

@@ -2,13 +2,17 @@
 #include "RtContext.h"
 #include "RtShader.h"
 #include "dxcapi.h"
+#include "nv_helpers_dx12/RootSignatureGenerator.h"
 #include <vector>
+#include <functional>
 
 // The max scalars supported by Nvidia driver
 #define DXR_MAX_PAYLOAD_SIZE_IN_BYTES (14 * sizeof(float))
 
 namespace DXRFramework
 {
+    using nv_helpers_dx12::RootSignatureGenerator;
+
     class RtProgram
     {
     public:
@@ -43,18 +47,21 @@ namespace DXRFramework
             Desc& setRayGen(const std::string& raygen);
             Desc& addMiss(uint32_t missIndex, const std::string& miss);
             Desc& addHitGroup(uint32_t hitIndex, const std::string& closestHit, const std::string& anyHit, const std::string& intersection = "");
+
+            using RootSignatureConfigurator = std::function<void(RootSignatureGenerator &config)>;
+            Desc& configureGlobalRootSignature(RootSignatureConfigurator configure);
+            Desc& configureRayGenRootSignature(RootSignatureConfigurator configure);
+            Desc& configureHitGroupRootSignature(RootSignatureConfigurator configure);
+            Desc& configureMissRootSignature(RootSignatureConfigurator configure);
         private:
             friend class RtProgram;
-            std::vector<std::shared_ptr<ShaderLibrary>> mShaderLibraries;
 
             struct ShaderEntry
             {
                 uint32_t libraryIndex = -1;
                 std::string entryPoint;
+                RootSignatureGenerator localRootSignatureConfig;
             };
-
-            ShaderEntry mRayGen;
-            std::vector<ShaderEntry> mMiss;
 
             struct HitProgramEntry
             {
@@ -62,9 +69,20 @@ namespace DXRFramework
                 std::string anyHit;
                 std::string closestHit;
                 uint32_t libraryIndex = -1;
+                RootSignatureGenerator localRootSignatureConfig;
             };
+
+            ShaderEntry mRayGen;
+            std::vector<ShaderEntry> mMiss;
             std::vector<HitProgramEntry> mHit;
+
+            std::vector<std::shared_ptr<ShaderLibrary>> mShaderLibraries;
             uint32_t mActiveLibraryIndex = -1;
+
+            RootSignatureGenerator mGlobalRootSignatureConfig;
+            RootSignatureGenerator mRayGenRootSignatureConfig;
+            RootSignatureGenerator mHitGroupRootSignatureConfig;
+            RootSignatureGenerator mMissRootSignatureConfig;
         };
 
         struct HitGroup
@@ -75,25 +93,24 @@ namespace DXRFramework
             std::string mExportName;
         };
 
-        static SharedPtr create(RtContext::SharedPtr context, const Desc& desc, uint32_t maxPayloadSize = DXR_MAX_PAYLOAD_SIZE_IN_BYTES, uint32_t maxAttributesSize = D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES);
+        static SharedPtr create(
+            RtContext::SharedPtr context, const Desc& desc, 
+            uint32_t maxPayloadSize = DXR_MAX_PAYLOAD_SIZE_IN_BYTES, 
+            uint32_t maxAttributesSize = D3D12_RAYTRACING_MAX_ATTRIBUTE_SIZE_IN_BYTES);
 
         const std::vector<std::shared_ptr<ShaderLibrary>> &getShaderLibraries() const { return mDesc.mShaderLibraries; }
 
-        // Ray-gen
         RtShader::SharedPtr getRayGenProgram() const { return mRayGenProgram; }
 
-        // Hit
         uint32_t getHitProgramCount() const { return (uint32_t)mHitPrograms.size(); }
         HitGroup getHitProgram(uint32_t rayIndex) const { return mHitPrograms[rayIndex]; }
 
-        // Miss
         uint32_t getMissProgramCount() const { return (uint32_t)mMissPrograms.size(); }
         RtShader::SharedPtr getMissProgram(uint32_t rayIndex) const { return mMissPrograms[rayIndex]; }
 
         ID3D12RootSignature *getGlobalRootSignature() const { return mGlobalRootSignature.Get(); }
 
         ~RtProgram();
-
     private:
         RtProgram(RtContext::SharedPtr context, const Desc& desc, uint32_t maxPayloadSize, uint32_t maxAttributesSize);
 
@@ -105,16 +122,5 @@ namespace DXRFramework
         std::vector<RtShader::SharedPtr> mMissPrograms;
 
         ID3D12RaytracingFallbackDevice *mFallbackDevice;
-
-        ID3D12RootSignature *TempCreateGlobalRootSignature();
     };
-
-    namespace GlobalRootSignatureParams {
-        enum Value {
-            AccelerationStructureSlot = 0,
-            OutputViewSlot,
-            PerFrameConstantsSlot,
-            Count 
-        };
-    }
 }

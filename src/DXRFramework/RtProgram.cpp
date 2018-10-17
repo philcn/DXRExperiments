@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "RtProgram.h"
-#include "nv_helpers_dx12/RootSignatureGenerator.h"
 
 extern bool gVertexBufferUseRootTableInsteadOfRootView;
 
@@ -99,6 +98,36 @@ namespace DXRFramework
         return *this;
     }
 
+    RtProgram::Desc& RtProgram::Desc::configureGlobalRootSignature(RootSignatureConfigurator configure)
+    {
+        configure(mGlobalRootSignatureConfig);
+        return *this;
+    }
+
+    RtProgram::Desc& RtProgram::Desc::configureRayGenRootSignature(RootSignatureConfigurator configure)
+    {
+        configure(mRayGenRootSignatureConfig);
+        return *this;
+    }
+
+    RtProgram::Desc& RtProgram::Desc::configureHitGroupRootSignature(RootSignatureConfigurator configure)
+    {
+        configure(mHitGroupRootSignatureConfig);
+        for (size_t i = 0 ; i < mHit.size() ; i++) {
+            mHit[i].localRootSignatureConfig = mHitGroupRootSignatureConfig;
+        }
+        return *this;
+    }
+
+    RtProgram::Desc& RtProgram::Desc::configureMissRootSignature(RootSignatureConfigurator configure)
+    {
+        configure(mMissRootSignatureConfig);
+        for (size_t i = 0 ; i < mMiss.size() ; i++) {
+            mMiss[i].localRootSignatureConfig = mMissRootSignatureConfig;
+        }
+        return *this;
+    }
+
     RtProgram::SharedPtr RtProgram::create(RtContext::SharedPtr context, const Desc& desc, uint32_t maxPayloadSize, uint32_t maxAttributesSize)
     {
         ThrowIfFalse(desc.mRayGen.libraryIndex != -1, L"Can't create an RtProgram without a ray-generation shader");
@@ -108,26 +137,19 @@ namespace DXRFramework
     RtProgram::RtProgram(RtContext::SharedPtr context, const RtProgram::Desc& desc, uint32_t maxPayloadSize, uint32_t maxAttributesSize)
         : mFallbackDevice(context->getFallbackDevice()), mDesc(desc)
     {
-        // Shader reflection
-        // TODO:
+        mGlobalRootSignature = mDesc.mGlobalRootSignatureConfig.Generate(mFallbackDevice, false);
 
-        // Create global root signature
-        // TODO:
-        mGlobalRootSignature = TempCreateGlobalRootSignature();
-
-        // Create all programs and local root signature
-        // Associate shader library with all programs
-        // TODO:
-
+        // TODO: Associate shader library with all programs
         // const std::string raygenFile = desc.mShaderLibraries[desc.mRayGen.libraryIndex]->getFilename();
-        mRayGenProgram = RtShader::create(context, RtShaderType::RayGeneration, desc.mRayGen.entryPoint, maxPayloadSize, maxAttributesSize);
+
+        mRayGenProgram = RtShader::create(context, RtShaderType::RayGeneration, desc.mRayGen.entryPoint, maxPayloadSize, maxAttributesSize, desc.mRayGenRootSignatureConfig);
 
         mMissPrograms.resize(desc.mMiss.size());
         for (size_t i = 0 ; i < desc.mMiss.size() ; i++) {
             const auto& m = desc.mMiss[i];
             if (m.libraryIndex != -1) {
                 // const std::string missFile = desc.mShaderLibraries[m.libraryIndex]->getFilename();
-                mMissPrograms[i] = RtShader::create(context, RtShaderType::Miss, m.entryPoint, maxPayloadSize, maxAttributesSize);
+                mMissPrograms[i] = RtShader::create(context, RtShaderType::Miss, m.entryPoint, maxPayloadSize, maxAttributesSize, m.localRootSignatureConfig);
             }
         }
 
@@ -137,50 +159,16 @@ namespace DXRFramework
             if (m.libraryIndex != -1) {
                 // const std::string hitFile = desc.mShaderLibraries[h.libraryIndex]->getFilename();
                 HitGroup &hitGroup = mHitPrograms[i];
-                hitGroup.mClosestHit = RtShader::create(context, RtShaderType::ClosestHit, m.closestHit, maxPayloadSize, maxAttributesSize);
+                hitGroup.mClosestHit = RtShader::create(context, RtShaderType::ClosestHit, m.closestHit, maxPayloadSize, maxAttributesSize, m.localRootSignatureConfig);
                 if (!m.anyHit.empty()) {
-                    hitGroup.mAnyHit = RtShader::create(context, RtShaderType::AnyHit, m.anyHit, maxPayloadSize, maxAttributesSize);
+                    hitGroup.mAnyHit = RtShader::create(context, RtShaderType::AnyHit, m.anyHit, maxPayloadSize, maxAttributesSize, m.localRootSignatureConfig);
                 }
                 if (!m.intersection.empty()) {
-                    hitGroup.mIntersection = RtShader::create(context, RtShaderType::Intersection, m.intersection, maxPayloadSize, maxAttributesSize);
+                    hitGroup.mIntersection = RtShader::create(context, RtShaderType::Intersection, m.intersection, maxPayloadSize, maxAttributesSize, m.localRootSignatureConfig);
                 }
                 hitGroup.mExportName = "HitGroup" + std::to_string(i);
             }
         }
-    }
-
-    ID3D12RootSignature *RtProgram::TempCreateGlobalRootSignature()
-    {
-        #if 1
-            nv_helpers_dx12::RootSignatureGenerator rootSigGenerator;
-            // slot 0, GlobalRootSignatureParams::AccelerationStructureSlot
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0); // t0
-            // slot 1, GlobalRootSignatureParams::OutputViewSlot
-            rootSigGenerator.AddHeapRangesParameter({{0 /* u0 */, 1, 0 /* space0 */, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0}});
-            // slot 2, GlobalRootSignatureParams::PerFrameConstantsSlot
-            rootSigGenerator.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0); // b0
-
-            D3D12_STATIC_SAMPLER_DESC cubeSampler = {};
-            cubeSampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            cubeSampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            cubeSampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-            cubeSampler.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-            cubeSampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-            cubeSampler.ShaderRegister = 0;
-
-            rootSigGenerator.AddStaticSampler(cubeSampler);
-
-            return rootSigGenerator.Generate(mFallbackDevice, false /* not local root signature */);
-        #else
-            CD3DX12_DESCRIPTOR_RANGE ranges[1]; // Perfomance TIP: Order from most frequent to least frequent.
-            ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 0); // 1 output texture
-
-            CD3DX12_ROOT_PARAMETER rootParameters[GlobalRootSignatureParams::Count];
-            rootParameters[GlobalRootSignatureParams::AccelerationStructureSlot].InitAsShaderResourceView(0);
-            rootParameters[GlobalRootSignatureParams::OutputViewSlot].InitAsDescriptorTable(1, &ranges[0]);
-            CD3DX12_ROOT_SIGNATURE_DESC globalRootSignatureDesc(ARRAYSIZE(rootParameters), rootParameters);
-            SerializeAndCreateRaytracingRootSignature(globalRootSignatureDesc, &mGlobalRootSignature);
-        #endif
     }
 
     RtProgram::~RtProgram() = default;
