@@ -55,6 +55,7 @@ private:
 
     // Resources
     ComPtr<ID3D12Resource> mOutputResource;
+    UINT mOutputUavHeapIndex;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle;
 
     ComPtr<ID3D12Resource> mConstantBufferResource;

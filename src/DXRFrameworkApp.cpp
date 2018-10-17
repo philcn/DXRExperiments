@@ -193,9 +193,8 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     UpdateForSizeChange(width, height);
 
-    // TODO:
-    // mOutputResource.Reset();
-    // CreateRaytracingOutputBuffer();
+    mCamera->SetAspectRatio(m_aspectRatio);
+    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
 void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)

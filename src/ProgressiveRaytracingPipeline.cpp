@@ -16,6 +16,7 @@ static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
 
 ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPtr context) :
     mRtContext(context),
+    mOutputUavHeapIndex(UINT_MAX),
     mFrameAccumulationEnabled(false),
     mAnimationPaused(true)
 {
@@ -94,14 +95,15 @@ void ProgressiveRaytracingPipeline::loadResources(ID3D12CommandQueue *uploadComm
 void ProgressiveRaytracingPipeline::createOutputResource(DXGI_FORMAT format, UINT width, UINT height)
 {
     auto device = mRtContext->getDevice();
-    AllocateUAVTexture(device, format, width, height, &mOutputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    AllocateUAVTexture(device, format, width, height, mOutputResource.ReleaseAndGetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     D3D12_CPU_DESCRIPTOR_HANDLE descriptorCpuHandle;
-    UINT descriptorHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, UINT_MAX);
+    mOutputUavHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, mOutputUavHeapIndex);
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, descriptorCpuHandle);
-    mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(descriptorHeapIndex);
+    mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
 }
 
 inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XMFLOAT4 *U, XMFLOAT4 *V, XMFLOAT4 *W)
