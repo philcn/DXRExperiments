@@ -58,9 +58,7 @@ private:
     UINT mOutputUavHeapIndex;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle;
 
-    ComPtr<ID3D12Resource> mConstantBufferResource;
-    UINT mConstantBufferAlignedSize;
-    void *mConstantBufferData;
+    ConstantBuffer<PerFrameConstants> mConstantBuffer;
 
     std::vector<ComPtr<ID3D12Resource>> mTextureResources;
     std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> mTextureSrvGpuHandles;

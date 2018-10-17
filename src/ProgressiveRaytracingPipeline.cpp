@@ -84,12 +84,7 @@ void ProgressiveRaytracingPipeline::loadResources(ID3D12CommandQueue *uploadComm
     mTextureSrvGpuHandles[1] = mRtContext->createTextureSRVHandle(mTextureResources[1].Get(), true);
 
     // Create per-frame constant buffer
-    mConstantBufferAlignedSize = CalculateConstantBufferByteSize(sizeof(PerFrameConstants));
-    mConstantBufferResource = nv_helpers_dx12::CreateBuffer(mRtContext->getDevice(), mConstantBufferAlignedSize * frameCount, 
-        D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
-
-    // Map the constant buffer and cache its heap pointers. We don't unmap this until the app closes.
-    ThrowIfFailed(mConstantBufferResource->Map(0, nullptr, reinterpret_cast<void**>(&mConstantBufferData)));
+    mConstantBuffer.Create(device, frameCount, L"PerFrameConstantBuffer");
 }
 
 void ProgressiveRaytracingPipeline::createOutputResource(DXGI_FORMAT format, UINT width, UINT height)
@@ -100,9 +95,11 @@ void ProgressiveRaytracingPipeline::createOutputResource(DXGI_FORMAT format, UIN
 
     D3D12_CPU_DESCRIPTOR_HANDLE descriptorCpuHandle;
     mOutputUavHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, mOutputUavHeapIndex);
+
     D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
     uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
     device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, descriptorCpuHandle);
+
     mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
 }
 
@@ -129,7 +126,7 @@ inline bool hasCameraMoved(Math::Camera &camera, Math::Matrix4 &lastVPMatrix)
 {
     const Math::Matrix4 &currentMatrix = camera.GetViewProjMatrix();
     return !(XMVector4Equal(lastVPMatrix.GetX(), currentMatrix.GetX()) && XMVector4Equal(lastVPMatrix.GetY(), currentMatrix.GetY()) &&
-        XMVector4Equal(lastVPMatrix.GetZ(), currentMatrix.GetZ()) && XMVector4Equal(lastVPMatrix.GetW(), currentMatrix.GetW()));
+             XMVector4Equal(lastVPMatrix.GetZ(), currentMatrix.GetZ()) && XMVector4Equal(lastVPMatrix.GetW(), currentMatrix.GetW()));
 }
 
 void ProgressiveRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height)
@@ -145,53 +142,44 @@ void ProgressiveRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames
         mLastCameraVPMatrix = mCamera->GetViewProjMatrix();
     }
 
-    // Reuse constants for last frame
-    PerFrameConstants constants = {};
-    memcpy(&constants, (uint8_t*)mConstantBufferData + mConstantBufferAlignedSize * prevFrameIndex, sizeof(constants));
-    {
-        XMStoreFloat4(&constants.cameraParams.worldEyePos, mCamera->GetPosition());
-        calculateCameraVariables(*mCamera, mCamera->GetAspectRatio(), &constants.cameraParams.U, &constants.cameraParams.V, &constants.cameraParams.W);
-        float xJitter = (mRngDist(mRng) - 0.5f) / float(width);
-        float yJitter = (mRngDist(mRng) - 0.5f) / float(height);
-        constants.cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
-        constants.cameraParams.frameCount = elapsedFrames;
-        constants.cameraParams.accumCount = mAccumCount++;
-        constants.options = mShaderDebugOptions;
+    CameraParams &cameraParams = mConstantBuffer->cameraParams;
+    XMStoreFloat4(&cameraParams.worldEyePos, mCamera->GetPosition());
+    calculateCameraVariables(*mCamera, mCamera->GetAspectRatio(), &cameraParams.U, &cameraParams.V, &cameraParams.W);
+    float xJitter = (mRngDist(mRng) - 0.5f) / float(width);
+    float yJitter = (mRngDist(mRng) - 0.5f) / float(height);
+    cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
+    cameraParams.frameCount = elapsedFrames;
+    cameraParams.accumCount = mAccumCount++;
 
-        XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
-        XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
-        dirLightVector = XMVector4Transform(dirLightVector, rotation);
-        XMStoreFloat4(&constants.directionalLight.forwardDir, dirLightVector);
-        constants.directionalLight.color = dirLightColor;
+    XMVECTOR dirLightVector = XMVectorSet(0.3f, -0.2f, -1.0f, 0.0f);
+    XMMATRIX rotation =  XMMatrixRotationY(sin(elapsedTime * 0.2f) * 3.14f * 0.5f);
+    dirLightVector = XMVector4Transform(dirLightVector, rotation);
+    XMStoreFloat4(&mConstantBuffer->directionalLight.forwardDir, dirLightVector);
+    mConstantBuffer->directionalLight.color = dirLightColor;
 
-        // XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
-        // pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
-        // pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
-        XMVECTOR pointLightPos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-        XMStoreFloat4(&constants.pointLight.worldPos, pointLightPos);
-        constants.pointLight.color = pointLightColor;
-    }
-    memcpy((uint8_t*)mConstantBufferData + mConstantBufferAlignedSize * frameIndex, &constants, sizeof(constants));
+    // XMVECTOR pointLightPos = XMVectorSet(sin(elapsedTime * 0.97f), sin(elapsedTime * 0.45f), sin(elapsedTime * 0.32f), 1.0f);
+    // pointLightPos = XMVectorAdd(pointLightPos, XMVectorSet(0.0f, 0.5f, 1.0f, 0.0f));
+    // pointLightPos = XMVectorMultiply(pointLightPos, XMVectorSet(0.221f, 0.049f, 0.221f, 1.0f));
+    XMVECTOR pointLightPos = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+    XMStoreFloat4(&mConstantBuffer->pointLight.worldPos, pointLightPos);
+    mConstantBuffer->pointLight.color = pointLightColor;
+
+    mConstantBuffer->options = mShaderDebugOptions;
+
+    mConstantBuffer.CopyStagingToGpu(frameIndex);
 }
 
 void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height)
 {
-    auto program = mRtBindings->getProgram();
-    commandList->SetComputeRootSignature(program->getGlobalRootSignature());
-    mRtContext->bindDescriptorHeap();
-
     // Update shader table root arguments
+    auto program = mRtBindings->getProgram();
+
     for (int rayType = 0; rayType < program->getHitProgramCount(); ++rayType) {
         for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             auto &hitVars = mRtBindings->getHitVars(rayType, instance);
-
-            D3D12_GPU_DESCRIPTOR_HANDLE vbSrvHandle = mRtScene->getModel(instance)->getVertexBufferSrvHandle();
-            D3D12_GPU_DESCRIPTOR_HANDLE ibSrvHandle = mRtScene->getModel(instance)->getIndexBufferSrvHandle();
-            hitVars->appendHeapRanges(vbSrvHandle.ptr);
-            hitVars->appendHeapRanges(ibSrvHandle.ptr);
-
-            const Material &material = mMaterials[instance];
-            hitVars->append32BitConstants((void*)&material.params, SizeOfInUint32(MaterialParams));
+            hitVars->appendHeapRanges(mRtScene->getModel(instance)->getVertexBufferSrvHandle().ptr);
+            hitVars->appendHeapRanges(mRtScene->getModel(instance)->getIndexBufferSrvHandle().ptr);
+            hitVars->append32BitConstants((void*)&mMaterials[instance].params, SizeOfInUint32(MaterialParams));
         }
     }
 
@@ -204,9 +192,9 @@ void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandLis
     mRtBindings->apply(mRtContext, mRtState);
 
     // Set global root arguments
-    auto cbGpuAddress = mConstantBufferResource->GetGPUVirtualAddress() + mConstantBufferAlignedSize * frameIndex;
-    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PerFrameConstantsSlot, cbGpuAddress);
-
+    mRtContext->bindDescriptorHeap();
+    commandList->SetComputeRootSignature(program->getGlobalRootSignature());
+    commandList->SetComputeRootConstantBufferView(GlobalRootSignatureParams::PerFrameConstantsSlot, mConstantBuffer.GpuVirtualAddress(frameIndex));
     commandList->SetComputeRootDescriptorTable(GlobalRootSignatureParams::OutputViewSlot, mOutputUavGpuHandle);
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
