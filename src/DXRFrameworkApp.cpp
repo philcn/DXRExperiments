@@ -15,7 +15,7 @@ namespace GameCore
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mRaytracingEnabled(true)
+    mRaytracingEnabled(false)
 {
     UpdateForSizeChange(width, height);
 }
@@ -76,47 +76,50 @@ void DXRFrameworkApp::InitRaytracing()
     auto commandList = m_deviceResources->GetCommandList();
 
     mRtContext = RtContext::create(device, commandList, false /* force compute */);
-    mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
 
-    // Create scene
-    mRtScene = RtScene::create();
-    {
-        auto identity = DirectX::XMMatrixIdentity();
+    if (mRaytracingEnabled) {
+        mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
 
-        // working directory is "vc2015"
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
+        // Create scene
+        mRtScene = RtScene::create();
+        {
+            auto identity = DirectX::XMMatrixIdentity();
+
+            // working directory is "vc2015"
+            mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
+            mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
+        }
+        mRaytracingPipeline->setScene(mRtScene);
+
+        // Configure raytracing pipeline
+        {
+            ProgressiveRaytracingPipeline::Material material1 = {};
+            material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
+            material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+            material1.params.roughness = 0.05f;
+            material1.params.reflectivity = 0.75f;
+            material1.params.type = 1;
+
+            ProgressiveRaytracingPipeline::Material material2 = {};
+            material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
+            material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
+            material2.params.roughness = 0.005f;
+            material2.params.reflectivity = 1.0f;
+            material2.params.type = 1;
+
+            mRaytracingPipeline->addMaterial(material1);
+            mRaytracingPipeline->addMaterial(material2);
+        }
+        mRaytracingPipeline->setCamera(mCamera);
+        mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
+        mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+
+        // Build acceleration structures
+        commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
+        mRaytracingPipeline->buildAccelerationStructures();
+        m_deviceResources->ExecuteCommandList();
+        m_deviceResources->WaitForGpu();
     }
-    mRaytracingPipeline->setScene(mRtScene);
-
-    // Configure raytracing pipeline
-    {
-        ProgressiveRaytracingPipeline::Material material1 = {};
-        material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
-        material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-        material1.params.roughness = 0.05f;
-        material1.params.reflectivity = 0.75f;
-        material1.params.type = 1; 
-
-        ProgressiveRaytracingPipeline::Material material2 = {};
-        material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
-        material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
-        material2.params.roughness = 0.005f;
-        material2.params.reflectivity = 1.0f;
-        material2.params.type = 1;
-
-        mRaytracingPipeline->addMaterial(material1);
-        mRaytracingPipeline->addMaterial(material2);
-    }
-    mRaytracingPipeline->setCamera(mCamera);
-    mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
-
-    // Build acceleration structures
-    commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
-    mRaytracingPipeline->buildAccelerationStructures();
-    m_deviceResources->ExecuteCommandList();
-    m_deviceResources->WaitForGpu();
 }
 
 void DXRFrameworkApp::OnUpdate()
@@ -132,7 +135,9 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    mRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+    if (mRaytracingEnabled) {
+        mRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+    }
 }
 
 void DXRFrameworkApp::OnRender()
