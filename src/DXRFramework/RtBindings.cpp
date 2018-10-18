@@ -24,14 +24,16 @@ namespace DXRFramework
         mHitProgCount = mProgram->getHitProgramCount();
         mMissProgCount = mProgram->getMissProgramCount();
         mFirstHitVarEntry = kFirstMissRecordIndex + mMissProgCount;
-        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize(); // D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES
 
-        mGlobalParams = RtParams::create(); // mProgram->getGlobalRootSignature();
+        mProgramIdentifierSize = context->getFallbackDevice()->GetShaderIdentifierSize();
+        assert(mProgramIdentifierSize == D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES);
+
+        mGlobalParams = RtParams::create();
 
         // Find the max root-signature size, create params with root signatures and reserve space
         uint32_t maxRootSigSize = sizeof(UINT64) * 2 + sizeof(MaterialParams); // TEMP
 
-        mRayGenParams = RtParams::create(mProgramIdentifierSize); // mProgram->getRayGenProgram();
+        mRayGenParams = RtParams::create(mProgramIdentifierSize);
         mRayGenParams->allocateStorage(maxRootSigSize);
         // update maxRootSigSize
 
@@ -40,7 +42,7 @@ namespace DXRFramework
         for (UINT i = 0 ; i < mHitProgCount; ++i) {
             mHitParams[i].resize(recordCountPerHit);
             for (UINT j = 0; j < recordCountPerHit; ++j) {
-                mHitParams[i][j] = RtParams::create(mProgramIdentifierSize); // mProgram->getHitProgram(i);
+                mHitParams[i][j] = RtParams::create(mProgramIdentifierSize);
                 mHitParams[i][j]->allocateStorage(maxRootSigSize);
                 // update maxRootSigSize
             }
@@ -48,7 +50,7 @@ namespace DXRFramework
 
         mMissParams.resize(mMissProgCount);
         for (UINT i = 0 ; i < mMissProgCount; ++i) {
-            mMissParams[i] = RtParams::create(mProgramIdentifierSize); // mProgram->getMissProgram(i);
+            mMissParams[i] = RtParams::create(mProgramIdentifierSize);
             mMissParams[i]->allocateStorage(maxRootSigSize);
             // update maxRootSigSize
         }
