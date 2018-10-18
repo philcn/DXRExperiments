@@ -15,7 +15,8 @@ namespace GameCore
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mRaytracingEnabled(false)
+    mRaytracingEnabled(false),
+    mBypassRaytracing(true)
 {
     UpdateForSizeChange(width, height);
 }
@@ -77,42 +78,42 @@ void DXRFrameworkApp::InitRaytracing()
 
     mRtContext = RtContext::create(device, commandList, false /* force compute */);
     mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
+
+    // Create scene
+    mRtScene = RtScene::create();
+    {
+        auto identity = DirectX::XMMatrixIdentity();
+
+        // working directory is "vc2015"
+        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
+        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
+    }
+    mRaytracingPipeline->setScene(mRtScene);
+
+    // Configure raytracing pipeline
+    {
+        ProgressiveRaytracingPipeline::Material material1 = {};
+        material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
+        material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
+        material1.params.roughness = 0.05f;
+        material1.params.reflectivity = 0.75f;
+        material1.params.type = 1;
+
+        ProgressiveRaytracingPipeline::Material material2 = {};
+        material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
+        material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
+        material2.params.roughness = 0.005f;
+        material2.params.reflectivity = 1.0f;
+        material2.params.type = 1;
+
+        mRaytracingPipeline->addMaterial(material1);
+        mRaytracingPipeline->addMaterial(material2);
+    }
+    mRaytracingPipeline->setCamera(mCamera);
+    mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
     mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
-    if (mRaytracingEnabled) {
-        // Create scene
-        mRtScene = RtScene::create();
-        {
-            auto identity = DirectX::XMMatrixIdentity();
-
-            // working directory is "vc2015"
-            mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
-            mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
-        }
-        mRaytracingPipeline->setScene(mRtScene);
-
-        // Configure raytracing pipeline
-        {
-            ProgressiveRaytracingPipeline::Material material1 = {};
-            material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
-            material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-            material1.params.roughness = 0.05f;
-            material1.params.reflectivity = 0.75f;
-            material1.params.type = 1;
-
-            ProgressiveRaytracingPipeline::Material material2 = {};
-            material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
-            material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
-            material2.params.roughness = 0.005f;
-            material2.params.reflectivity = 1.0f;
-            material2.params.type = 1;
-
-            mRaytracingPipeline->addMaterial(material1);
-            mRaytracingPipeline->addMaterial(material2);
-        }
-        mRaytracingPipeline->setCamera(mCamera);
-        mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-
+    if (!mBypassRaytracing) {
         // Build acceleration structures
         commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
         mRaytracingPipeline->buildAccelerationStructures();
@@ -151,7 +152,7 @@ void DXRFrameworkApp::OnRender()
 
     if (mRaytracingEnabled) {
         mRaytracingPipeline->render(commandList, m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
-        CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
+        BlitToBackbuffer(mRaytracingPipeline->getOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     } else {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
@@ -160,10 +161,10 @@ void DXRFrameworkApp::OnRender()
         // Insert rasterizeration code here
     }
 
-    // Test
-    if (!mRaytracingEnabled) {
+    // Test denoiser
+    if (mBypassRaytracing) {
         mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputUavHandle(), GetWidth(), GetHeight());
-        CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
+        BlitToBackbuffer(mRaytracingPipeline->getOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 
     // Render UI
@@ -209,22 +210,21 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
     mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
-void DXRFrameworkApp::CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
+void DXRFrameworkApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
-    auto outputResource = mRaytracingPipeline->getOutputResource();
 
     D3D12_RESOURCE_BARRIER preCopyBarriers[2];
     preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(outputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
+    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(textureResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
     commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
 
-    commandList->CopyResource(renderTarget, outputResource);
+    commandList->CopyResource(renderTarget, textureResource);
 
     D3D12_RESOURCE_BARRIER postCopyBarriers[2];
     postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, transitionToState);
-    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(outputResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(textureResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
     commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
 }

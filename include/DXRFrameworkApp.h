@@ -28,6 +28,7 @@ private:
 
     bool mNativeDxrSupported;
     bool mRaytracingEnabled;
+    bool mBypassRaytracing;
 
     std::shared_ptr<Math::Camera> mCamera;
     std::shared_ptr<GameCore::CameraController> mCamController;
@@ -38,5 +39,5 @@ private:
     DenoiseCompositor::SharedPtr mDenoiser;
 
     void InitRaytracing();
-    void CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);
+    void BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);
 };
