@@ -416,7 +416,7 @@
     <ClInclude Include="..\include\RealtimeRaytracingPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\DenoiseCompositer.h">
+    <ClInclude Include="..\include\DenoiseCompositor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -520,7 +520,7 @@
     <ClCompile Include="..\src\RealtimeRaytracingPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\DenoiseCompositer.cpp">
+    <ClCompile Include="..\src\DenoiseCompositor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
