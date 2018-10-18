@@ -36,7 +36,7 @@ public:
     void setScene(DXRFramework::RtScene::SharedPtr scene);
 
     ID3D12Resource *getOutputResource() { return mOutputResource.Get(); }
-
+    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle() { return mOutputUavGpuHandle; }
 private:
     ProgressiveRaytracingPipeline(DXRFramework::RtContext::SharedPtr context);
 

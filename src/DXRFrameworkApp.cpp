@@ -76,10 +76,10 @@ void DXRFrameworkApp::InitRaytracing()
     auto commandList = m_deviceResources->GetCommandList();
 
     mRtContext = RtContext::create(device, commandList, false /* force compute */);
+    mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
+    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
     if (mRaytracingEnabled) {
-        mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
-
         // Create scene
         mRtScene = RtScene::create();
         {
@@ -112,7 +112,6 @@ void DXRFrameworkApp::InitRaytracing()
         }
         mRaytracingPipeline->setCamera(mCamera);
         mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-        mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
         // Build acceleration structures
         commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
@@ -120,6 +119,8 @@ void DXRFrameworkApp::InitRaytracing()
         m_deviceResources->ExecuteCommandList();
         m_deviceResources->WaitForGpu();
     }
+
+    mDenoiser = DenoiseCompositor::create(mRtContext);
 }
 
 void DXRFrameworkApp::OnUpdate()
@@ -157,6 +158,12 @@ void DXRFrameworkApp::OnRender()
         commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
         // Insert rasterizeration code here
+    }
+
+    // Test
+    if (!mRaytracingEnabled) {
+        mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputUavHandle(), GetWidth(), GetHeight());
+        CopyRaytracingOutputToBackbuffer(D3D12_RESOURCE_STATE_RENDER_TARGET);
     }
 
     // Render UI
