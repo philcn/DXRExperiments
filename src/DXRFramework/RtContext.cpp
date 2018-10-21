@@ -32,16 +32,7 @@ namespace DXRFramework
     void RtContext::createDescriptorHeap()
     {
         D3D12_DESCRIPTOR_HEAP_DESC descriptorHeapDesc = {};
-        // 1x raytracing output texture UAV
-        // 1x tlas fallback wrapped pointer
-        // 2x blas fallback wrapped pointer
-        // 3x model vertex buffer SRV
-        // 3x model index buffer SRV
-        // 1x global camera SRV
-        // 2x test texture SRV
-        // 1x per-frame constants CBV
-        // 1x ImGui font SRV
-        descriptorHeapDesc.NumDescriptors = 15;
+        descriptorHeapDesc.NumDescriptors = 256;
         descriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         descriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         descriptorHeapDesc.NodeMask = 0;

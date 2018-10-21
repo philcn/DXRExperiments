@@ -57,8 +57,8 @@ namespace DXRFramework
         mPipelineGenerator.AddRootSignatureAssociation(raygenProgram->mLocalRootSignature.Get(), {raygenProgramName});
 
         // Set pipeline attributes
-        mPipelineGenerator.SetMaxPayloadSize(4 * sizeof(float) + 1 * sizeof(uint32_t));
-        mPipelineGenerator.SetMaxAttributeSize(2 * sizeof(float));
+        mPipelineGenerator.SetMaxPayloadSize(mMaxPayloadSize);
+        mPipelineGenerator.SetMaxAttributeSize(mMaxAttributeSize);
         mPipelineGenerator.SetMaxRecursionDepth(mMaxTraceRecursionDepth);
 
         mFallbackStateObject = mPipelineGenerator.FallbackGenerate(mProgram->getGlobalRootSignature());

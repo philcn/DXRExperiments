@@ -19,12 +19,21 @@ namespace DXRFramework
         void setMaxTraceRecursionDepth(uint32_t maxDepth) { mMaxTraceRecursionDepth = maxDepth; }
         uint32_t getMaxTraceRecursionDepth() const { return mMaxTraceRecursionDepth; }
 
+        void setMaxPayloadSize(uint32_t maxSize) { mMaxPayloadSize = maxSize; }
+        uint32_t getMaxPayloadSize() const { return mMaxPayloadSize; }
+
+        void setMaxAttributeSize(uint32_t maxSize) { mMaxAttributeSize = maxSize; }
+        uint32_t getMaxAttributeSize() const { return mMaxAttributeSize; }
+
         ID3D12RaytracingFallbackStateObject *getFallbackRtso();
     private:
         RtState(RtContext::SharedPtr context);
 
-        RtProgram::SharedPtr mProgram;
         uint32_t mMaxTraceRecursionDepth = 1;
+        uint32_t mMaxPayloadSize = 20;
+        uint32_t mMaxAttributeSize = 8;
+
+        RtProgram::SharedPtr mProgram;
         ComPtr<ID3D12RaytracingFallbackStateObject> mFallbackStateObject;
 
         ID3D12Device *mDevice;
