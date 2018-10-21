@@ -50,7 +50,7 @@ float3 shootSecondaryRay(float3 orig, float3 dir, float minT, uint currentDepth)
     payload.colorAndDistance = float4(0, 0, 0, 0);
     payload.depth = currentDepth + 1;
 
-    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 2, ray, payload);
+    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 0, ray, payload);
     return payload.colorAndDistance.rgb;
 }
 
@@ -148,7 +148,6 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo * diffuseComponent + materialParams.reflectivity * specularComponent * fresnel;
 }
 
-// Hit group 1
 [shader("closesthit")] 
 void PrimaryClosestHit(inout SimplePayload payload, Attributes attrib) 
 {
@@ -159,7 +158,12 @@ void PrimaryClosestHit(inout SimplePayload payload, Attributes attrib)
     payload.colorAndDistance = float4(color, RayTCurrent());
 }
 
-// Hit group 2
+[shader("miss")]
+void PrimaryMiss(inout SimplePayload payload)
+{
+    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
+}
+
 [shader("closesthit")]
 void ShadowClosestHit(inout ShadowPayload payload, Attributes attrib)
 {
@@ -173,19 +177,7 @@ void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)
 }
 
 [shader("miss")]
-void PrimaryMiss(inout SimplePayload payload : SV_RayPayload)
-{
-    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowPayload payload : SV_RayPayload)
+void ShadowMiss(inout ShadowPayload payload)
 {
     payload.lightVisibility = 1.0;
-}
-
-[shader("miss")]
-void SecondaryMiss(inout SimplePayload payload : SV_RayPayload)
-{
-    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
 }

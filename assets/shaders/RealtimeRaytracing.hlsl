@@ -58,7 +58,7 @@ float3 shootSecondaryRay(float3 orig, float3 dir, float minT, uint currentDepth)
     payload.distance = 0.0;
     payload.depth = currentDepth + 1;
 
-    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 2, ray, payload);
+    TraceRay(SceneBVH, 0, 0xFF, 0, 0, 0, ray, payload);
     return payload.color;
 }
 
@@ -102,7 +102,6 @@ float3 shadeAOV(float3 position, float3 normal, uint currentDepth, out ShadingAO
     return materialParams.albedo * directContrib / M_PI + materialParams.reflectivity * specularComponent * fresnel;
 }
 
-// Hit group 1
 [shader("closesthit")] 
 void PrimaryClosestHit(inout RealtimePayload payload, Attributes attrib) 
 {
@@ -117,7 +116,15 @@ void PrimaryClosestHit(inout RealtimePayload payload, Attributes attrib)
     payload.aov = shadingResult;
 }
 
-// Hit group 2
+[shader("miss")]
+void PrimaryMiss(inout RealtimePayload payload)
+{
+    payload.color = sampleEnvironment();
+    payload.distance = -1.0;
+    payload.aov.directLighting = payload.color;
+    payload.aov.indirectSpecular = 0.0;
+}
+
 [shader("closesthit")]
 void ShadowClosestHit(inout ShadowPayload payload, Attributes attrib)
 {
@@ -131,24 +138,7 @@ void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)
 }
 
 [shader("miss")]
-void PrimaryMiss(inout RealtimePayload payload : SV_RayPayload)
-{
-    payload.color = sampleEnvironment();
-    payload.distance = -1.0;
-    payload.aov.directLighting = payload.color;
-    payload.aov.indirectSpecular = 0.0;
-}
-
-[shader("miss")]
-void ShadowMiss(inout ShadowPayload payload : SV_RayPayload)
+void ShadowMiss(inout ShadowPayload payload)
 {
     payload.lightVisibility = 1.0;
-}
-
-[shader("miss")]
-void SecondaryMiss(inout RealtimePayload payload : SV_RayPayload)
-{
-    payload.color = sampleEnvironment();
-    payload.distance = -1.0;
-    payload.aov.indirectSpecular = 0.0;
 }

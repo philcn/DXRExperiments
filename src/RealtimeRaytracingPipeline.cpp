@@ -32,12 +32,11 @@ RealtimeRaytracingPipeline::RealtimeRaytracingPipeline(RtContext::SharedPtr cont
 {
     RtProgram::Desc programDesc;
     {
-        std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
+        std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss" };
         programDesc.addShaderLibrary(g_pRealtimeRaytracing, ARRAYSIZE(g_pRealtimeRaytracing), libraryExports);
         programDesc.setRayGen("RayGen");
         programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
         programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
-        programDesc.addMiss(2, "SecondaryMiss");
         programDesc.configureGlobalRootSignature([] (RootSignatureGenerator &config) {
             // GlobalRootSignatureParams::AccelerationStructureSlot
             config.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_SRV, 0 /* t0 */); 
