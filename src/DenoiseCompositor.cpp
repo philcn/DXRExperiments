@@ -3,46 +3,103 @@
 #include "CompiledShaders/Compute.hlsl.h"
 #include "nv_helpers_dx12/RootSignatureGenerator.h"
 #include "DXSampleHelper.h"
+#include "DirectXRaytracingHelper.h"
+#include "WICTextureLoader.h"
+#include "ResourceUploadBatch.h"
+#include "Math/Common.h"
+#include "ImGuiRendererDX.h"
 #include <D3Dcompiler.h>
-
-// #define RUNTIME_COMPILE_SHADER
 
 using nv_helpers_dx12::RootSignatureGenerator;
 
 DenoiseCompositor::DenoiseCompositor(DXRFramework::RtContext::SharedPtr context)
-    : mRtContext(context)
+    : mRtContext(context), mActive(true)
 {
     auto device = context->getDevice();
 
     RootSignatureGenerator rsConfig;
+    rsConfig.AddHeapRangesParameter({ {0 /* t0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0} });
     rsConfig.AddHeapRangesParameter({ {0 /* u0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0} });
+    rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /* b0 */, 0, 1);
     mComputeRootSignature = rsConfig.Generate(device, false);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
     computePsoDesc.pRootSignature = mComputeRootSignature.Get();
-
-#if defined(RUNTIME_COMPILE_SHADER)
-    LPCWSTR filePath = L"..\\assets\\shaders\\Compute.hlsl";
-    UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-    ComPtr<ID3DBlob> computeShader;
-    ComPtr<ID3DBlob> error;
-    ThrowIfFailed(D3DCompileFromFile(filePath, nullptr, nullptr, "main", "cs_5_0", compileFlags, 0, &computeShader, &error));
-    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(computeShader.Get());
-#else
     computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pCompute, ARRAYSIZE(g_pCompute));
-#endif
 
     ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mComputeState)));
     NAME_D3D12_OBJECT(mComputeState);
 }
 
-void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, D3D12_GPU_DESCRIPTOR_HANDLE outputUavHandle, UINT width, UINT height)
+void DenoiseCompositor::loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount, bool loadMockResources)
 {
+    auto device = mRtContext->getDevice();
+
+    mConstantBuffer.Create(device, frameCount, L"DenoiseCompositorCB");
+    mConstantBuffer->exposure = 1.0f;
+    mConstantBuffer->gamma = 2.2f;
+    mConstantBuffer->tonemap = true;
+    mConstantBuffer->gammaCorrect = true;
+
+    if (loadMockResources) {
+        mTextureResources.resize(1);
+        mTextureSrvGpuHandles.resize(1);
+
+        using namespace DirectX;
+        ResourceUploadBatch resourceUpload(device);
+        resourceUpload.Begin();
+        {
+            ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\linearImage.png", &mTextureResources[0], true));
+        }
+        auto uploadResourcesFinished = resourceUpload.End(uploadCommandQueue);
+        uploadResourcesFinished.wait();
+
+        mTextureSrvGpuHandles[0] = mRtContext->createTextureSRVHandle(mTextureResources[0].Get()); 
+    }
+}
+
+void DenoiseCompositor::createOutputResource(DXGI_FORMAT format, UINT width, UINT height)
+{
+    auto device = mRtContext->getDevice();
+
+    AllocateUAVTexture(device, format, width, height, mOutputResource.ReleaseAndGetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE descriptorCpuHandle;
+    mOutputUavHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, mOutputUavHeapIndex);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, descriptorCpuHandle);
+
+    mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
+}
+
+void DenoiseCompositor::userInterface()
+{
+    ui::Begin("Denoiser");
+    ui::SliderFloat("Exposure", &mConstantBuffer->exposure, 0.0f, 10.0f);
+    ui::SliderFloat("Gamma", &mConstantBuffer->gamma, 1.0f, 3.0f);
+    ui::Checkbox("Tonemap", (bool*)&mConstantBuffer->tonemap);
+    ui::Checkbox("Gamma correct", (bool*)&mConstantBuffer->gammaCorrect);
+    ui::End();
+}
+
+void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, D3D12_GPU_DESCRIPTOR_HANDLE inputSrvHandle, UINT frameIndex, UINT width, UINT height)
+{
+    mConstantBuffer.CopyStagingToGpu(frameIndex);
+
+    if (inputSrvHandle.ptr == 0) {
+        inputSrvHandle = mTextureSrvGpuHandles[0];
+    }
+
     mRtContext->bindDescriptorHeap();
 
     commandList->SetPipelineState(mComputeState.Get());
     commandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    commandList->SetComputeRootDescriptorTable(0, outputUavHandle);
+    commandList->SetComputeRootDescriptorTable(0, inputSrvHandle);
+    commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle);
+    commandList->SetComputeRootConstantBufferView(2, mConstantBuffer.GpuVirtualAddress(frameIndex));
 
-    commandList->Dispatch(width / 8, height / 8, 1);
+    const UINT TileSize = 8;
+    commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
 }

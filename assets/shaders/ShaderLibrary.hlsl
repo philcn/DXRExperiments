@@ -79,7 +79,7 @@ void RayGen()
     TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
     float4 prevColor = gOutput[launchIndex];
-    float4 curColor = float4(pow(payload.colorAndDistance.rgb, 1.0f / 2.2f), 1.0f);
+    float4 curColor = float4(payload.colorAndDistance.rgb, 1.0f);
     gOutput[launchIndex] = (perFrameConstants.cameraParams.accumCount * prevColor + curColor) / (perFrameConstants.cameraParams.accumCount + 1);
 }
 
@@ -262,7 +262,7 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
         if (materialParams.reflectivity > 0.001) {
-            float exponent = exp((1.0 - materialParams.roughness) * 7.0);
+            float exponent = exp((1.0 - materialParams.roughness) * 12.0);
             float pdf;
             float brdf;
             float3 mirrorDir = reflect(WorldRayDirection(), normal);
