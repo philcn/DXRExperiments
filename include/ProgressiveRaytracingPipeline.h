@@ -36,9 +36,10 @@ public:
     void setCamera(std::shared_ptr<Math::Camera> camera) { mCamera = camera; }
     void setScene(DXRFramework::RtScene::SharedPtr scene);
 
-    ID3D12Resource *getOutputResource() { return mOutputResource.Get(); }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle() { return mOutputUavGpuHandle; }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle() { return mOutputSrvGpuHandle; }
+    int getNumOutputs() { return 1; }
+    ID3D12Resource *getOutputResource(UINT id) { return mOutputResource.Get(); }
+    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle(UINT id) { return mOutputUavGpuHandle; }
+    D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle(UINT id) { return mOutputSrvGpuHandle; }
 
     bool mActive;
 private:
