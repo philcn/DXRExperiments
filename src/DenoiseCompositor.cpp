@@ -47,19 +47,21 @@ void DenoiseCompositor::loadResources(ID3D12CommandQueue *uploadCommandQueue, UI
     mConstantBuffer->debugVisualize = 0;
 
     if (loadMockResources) {
-        mTextureResources.resize(1);
-        mTextureSrvGpuHandles.resize(1);
+        mTextureResources.resize(2);
+        mTextureSrvGpuHandles.resize(2);
 
         using namespace DirectX;
         ResourceUploadBatch resourceUpload(device);
         resourceUpload.Begin();
         {
-            ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\linearImage.png", &mTextureResources[0], true));
+            ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\DirectLighting.png", &mTextureResources[0]));
+            ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\IndirectSpecular.png", &mTextureResources[1]));
         }
         auto uploadResourcesFinished = resourceUpload.End(uploadCommandQueue);
         uploadResourcesFinished.wait();
 
         mTextureSrvGpuHandles[0] = mRtContext->createTextureSRVHandle(mTextureResources[0].Get()); 
+        mTextureSrvGpuHandles[1] = mRtContext->createTextureSRVHandle(mTextureResources[1].Get()); 
     }
 }
 
@@ -107,6 +109,7 @@ void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, Denoise
 
     if (inputs.directLightingSrv.ptr == 0) {
         inputs.directLightingSrv = mTextureSrvGpuHandles[0];
+        inputs.indirectSpecularSrv = mTextureSrvGpuHandles[1];
     }
 
     mRtContext->bindDescriptorHeap();
