@@ -167,12 +167,12 @@ namespace DXRFramework
         return mFallbackDevice->GetWrappedPointerSimple(descriptorHeapIndex, resource->GetGPUVirtualAddress());
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE RtContext::createTextureSRVHandle(ID3D12Resource* resource, bool cubemap)
+    D3D12_GPU_DESCRIPTOR_HANDLE RtContext::createTextureSRVHandle(ID3D12Resource* resource, bool cubemap, UINT descriptorHeapIndex)
     {
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = createTextureSRVDesc(resource, cubemap);
 
         D3D12_CPU_DESCRIPTOR_HANDLE cpuDescriptorHandle;
-        UINT descriptorHeapIndex = allocateDescriptor(&cpuDescriptorHandle);
+        descriptorHeapIndex = allocateDescriptor(&cpuDescriptorHandle, descriptorHeapIndex);
         mDevice->CreateShaderResourceView(resource, &srvDesc, cpuDescriptorHandle);
         return getDescriptorGPUHandle(descriptorHeapIndex);
     }
@@ -185,6 +185,12 @@ namespace DXRFramework
         }
         *cpuDescriptor = CD3DX12_CPU_DESCRIPTOR_HANDLE(descriptorHeapCpuBase, descriptorIndexToUse, mDescriptorSize);
         return descriptorIndexToUse;
+    }
+
+    void RtContext::transitionResource(ID3D12Resource *resource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState)
+    {
+        D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(resource, fromState, toState);
+        mCommandList->ResourceBarrier(1, &barrier);
     }
 
     void RtContext::raytrace(RtBindings::SharedPtr bindings, RtState::SharedPtr state, uint32_t width, uint32_t height, uint32_t depth)

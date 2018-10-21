@@ -27,7 +27,6 @@ private:
     static const UINT FrameCount = 3;
 
     bool mNativeDxrSupported;
-    bool mRaytracingEnabled;
     bool mBypassRaytracing;
 
     std::shared_ptr<Math::Camera> mCamera;
@@ -39,5 +38,8 @@ private:
     DenoiseCompositor::SharedPtr mDenoiser;
 
     void InitRaytracing();
-    void BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES transitionToState = D3D12_RESOURCE_STATE_PRESENT);
+    void BlitToBackbuffer(
+        ID3D12Resource *textureResource, 
+        D3D12_RESOURCE_STATES fromState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS, 
+        D3D12_RESOURCE_STATES toState = D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 };

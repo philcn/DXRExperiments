@@ -28,8 +28,10 @@ namespace GlobalRootSignatureParams
 ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPtr context) :
     mRtContext(context),
     mOutputUavHeapIndex(UINT_MAX),
+    mOutputSrvHeapIndex(UINT_MAX),
     mFrameAccumulationEnabled(false),
-    mAnimationPaused(true)
+    mAnimationPaused(true),
+    mActive(true)
 {
     RtProgram::Desc programDesc;
     {
@@ -130,14 +132,22 @@ void ProgressiveRaytracingPipeline::createOutputResource(DXGI_FORMAT format, UIN
 
     AllocateUAVTexture(device, format, width, height, mOutputResource.ReleaseAndGetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE descriptorCpuHandle;
-    mOutputUavHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, mOutputUavHeapIndex);
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE uavCpuHandle;
+        mOutputUavHeapIndex = mRtContext->allocateDescriptor(&uavCpuHandle, mOutputUavHeapIndex);
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, descriptorCpuHandle);
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, uavCpuHandle);
 
-    mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
+        mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
+    }
+
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle;
+        mOutputSrvHeapIndex = mRtContext->allocateDescriptor(&srvCpuHandle, mOutputSrvHeapIndex);
+        mOutputSrvGpuHandle = mRtContext->createTextureSRVHandle(mOutputResource.Get(), false, mOutputSrvHeapIndex);
+    }
 }
 
 inline void calculateCameraVariables(Math::Camera &camera, float aspectRatio, XMFLOAT4 *U, XMFLOAT4 *V, XMFLOAT4 *W)
@@ -168,8 +178,6 @@ inline bool hasCameraMoved(Math::Camera &camera, Math::Matrix4 &lastVPMatrix)
 
 void ProgressiveRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height)
 {
-    userInterface();
-
     if (mAnimationPaused) {
         elapsedTime = 142.0f;
     }
@@ -240,49 +248,63 @@ void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandLis
 
 void ProgressiveRaytracingPipeline::userInterface()
 {
+    bool frameDirty = false;
+
     ui::Begin("Lighting");
     {
-        ui::ColorPicker4("Point Light", (float*)&pointLightColor);
-        ui::ColorPicker4("Directional Light", (float*)&dirLightColor);
+        frameDirty |= ui::ColorPicker4("Point Light", (float*)&pointLightColor);
+        frameDirty |= ui::ColorPicker4("Directional Light", (float*)&dirLightColor);
     }
     ui::End();
 
-    bool frameDirty = false;
-    frameDirty |= ui::Checkbox("Pause Animation", &mAnimationPaused);
-
-    ui::Separator();
-
-    if (ui::Checkbox("Frame Accumulation", &mFrameAccumulationEnabled)) {
-        mAnimationPaused = true;
-        frameDirty = true;
+    ui::Begin("Material");
+    {
+        frameDirty |= ui::SliderFloat3("Albedo", &mMaterials[0].params.albedo.x, 0.0f, 1.0f);
+        frameDirty |= ui::SliderFloat3("Specular", &mMaterials[0].params.specular.x, 0.0f, 1.0f);
+        frameDirty |= ui::SliderFloat("Reflectivity", &mMaterials[0].params.reflectivity, 0.0f, 1.0f);
+        frameDirty |= ui::SliderFloat("Roughness", &mMaterials[0].params.roughness, 0.0f, 1.0f);
     }
+    ui::End();
 
-    if (mFrameAccumulationEnabled) {
-        int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
-        int oldMaxIterations = mShaderDebugOptions.maxIterations;
-        if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
-            frameDirty |= (mShaderDebugOptions.maxIterations < mAccumCount);
-            mAccumCount = min(mAccumCount, oldMaxIterations);
+    ui::Begin("Progressive Raytracing");
+    {
+        frameDirty |= ui::Checkbox("Pause Animation", &mAnimationPaused);
+
+        ui::Separator();
+
+        if (ui::Checkbox("Frame Accumulation", &mFrameAccumulationEnabled)) {
+            mAnimationPaused = true;
+            frameDirty = true;
         }
-        ui::ProgressBar(float(currentIterations) / float(mShaderDebugOptions.maxIterations), ImVec2(), std::to_string(currentIterations).c_str());
+
+        if (mFrameAccumulationEnabled) {
+            int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
+            int oldMaxIterations = mShaderDebugOptions.maxIterations;
+            if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
+                frameDirty |= (mShaderDebugOptions.maxIterations < mAccumCount);
+                mAccumCount = min(mAccumCount, oldMaxIterations);
+            }
+            ui::ProgressBar(float(currentIterations) / float(mShaderDebugOptions.maxIterations), ImVec2(), std::to_string(currentIterations).c_str());
+        }
+
+        ui::Separator();
+
+        frameDirty |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
+        frameDirty |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
+        frameDirty |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
+        frameDirty |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
+        frameDirty |= ui::Checkbox("GBuffer Albedo Only", (bool*)&mShaderDebugOptions.showGBufferAlbedoOnly);
+        frameDirty |= ui::Checkbox("Direct Lighting Only", (bool*)&mShaderDebugOptions.showDirectLightingOnly);
+        frameDirty |= ui::Checkbox("Reflection Denoise Guide", (bool*)&mShaderDebugOptions.showReflectionDenoiseGuide);
+        frameDirty |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
+        frameDirty |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.0f, 10.0f);
+        frameDirty |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
+
+        ui::Separator();
+
+        ui::Text("Press space to toggle first person camera");
     }
-
-    ui::Separator();
-
-    frameDirty |= ui::Checkbox("Cosine Hemisphere Sampling", (bool*)&mShaderDebugOptions.cosineHemisphereSampling);
-    frameDirty |= ui::Checkbox("Indirect Diffuse Only", (bool*)&mShaderDebugOptions.showIndirectDiffuseOnly);
-    frameDirty |= ui::Checkbox("Indirect Specular Only", (bool*)&mShaderDebugOptions.showIndirectSpecularOnly);
-    frameDirty |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
-    frameDirty |= ui::Checkbox("GBuffer Albedo Only", (bool*)&mShaderDebugOptions.showGBufferAlbedoOnly);
-    frameDirty |= ui::Checkbox("Direct Lighting Only", (bool*)&mShaderDebugOptions.showDirectLightingOnly);
-    frameDirty |= ui::Checkbox("Reflection Denoise Guide", (bool*)&mShaderDebugOptions.showReflectionDenoiseGuide);
-    frameDirty |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
-    frameDirty |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.1f, 10.0f);
-    frameDirty |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
-
-    ui::Separator();
-
-    ui::Text("Press space to toggle first person camera");
+    ui::End();
 
     if (frameDirty) {
         mLastCameraVPMatrix = Math::Matrix4();

@@ -15,8 +15,7 @@ namespace GameCore
 
 DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mRaytracingEnabled(false),
-    mBypassRaytracing(true)
+    mBypassRaytracing(false)
 {
     UpdateForSizeChange(width, height);
 }
@@ -24,7 +23,7 @@ DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
 void DXRFrameworkApp::OnInit()
 {
     m_deviceResources = std::make_unique<DX::DeviceResources>(
-        DXGI_FORMAT_R8G8B8A8_UNORM,
+        DXGI_FORMAT_R16G16B16A16_FLOAT,//DXGI_FORMAT_R8G8B8A8_UNORM
         DXGI_FORMAT_UNKNOWN,
         FrameCount,
         D3D_FEATURE_LEVEL_12_0,
@@ -137,8 +136,16 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    if (mRaytracingEnabled) {
+    ui::Checkbox("ProgressiveRaytracingPipeline", &mRaytracingPipeline->mActive);
+    ui::Checkbox("DenosieCompositor", &mDenoiser->mActive);
+
+    if (mRaytracingPipeline->mActive) {
+        mRaytracingPipeline->userInterface();
         mRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+    }
+
+    if (mDenoiser->mActive) {
+        mDenoiser->userInterface();
     }
 }
 
@@ -149,22 +156,32 @@ void DXRFrameworkApp::OnRender()
     // Reset command list
     m_deviceResources->Prepare();
     auto commandList = m_deviceResources->GetCommandList();
+    auto currentFrame = m_deviceResources->GetCurrentFrameIndex();
 
-    if (mRaytracingEnabled) {
-        mRaytracingPipeline->render(commandList, m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
-        BlitToBackbuffer(mRaytracingPipeline->getOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
-    } else {
+    if (mBypassRaytracing || !mRaytracingPipeline->mActive) {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
         commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
         // Insert rasterizeration code here
-    }
 
-    // Test denoiser
-    if (mBypassRaytracing) {
-        mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputUavHandle(), GetWidth(), GetHeight());
-        BlitToBackbuffer(mRaytracingPipeline->getOutputResource(), D3D12_RESOURCE_STATE_RENDER_TARGET);
+        // Run denoiser with mock input textures
+        if (mBypassRaytracing && mDenoiser->mActive) {
+            mDenoiser->dispatch(commandList, D3D12_GPU_DESCRIPTOR_HANDLE{0}, currentFrame, GetWidth(), GetHeight());
+            BlitToBackbuffer(mDenoiser->getOutputResource());
+        }
+    } else {
+        mRaytracingPipeline->render(commandList, currentFrame, GetWidth(), GetHeight());
+
+        auto outputResource = mRaytracingPipeline->getOutputResource();
+        if (mDenoiser->mActive) {
+            mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputSrvHandle(), currentFrame, GetWidth(), GetHeight());
+            mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            BlitToBackbuffer(mDenoiser->getOutputResource());
+        } else {
+            BlitToBackbuffer(outputResource);
+        }
     }
 
     // Render UI
@@ -208,25 +225,21 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 
     mCamera->SetAspectRatio(m_aspectRatio);
     mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+    mDenoiser->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
-void DXRFrameworkApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES transitionToState /* = D3D12_RESOURCE_STATE_PRESENT */)
+void DXRFrameworkApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState)
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
 
-    D3D12_RESOURCE_BARRIER preCopyBarriers[2];
-    preCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
-    preCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(textureResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_SOURCE);
-    commandList->ResourceBarrier(ARRAYSIZE(preCopyBarriers), preCopyBarriers);
+    mRtContext->transitionResource(renderTarget, D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_COPY_DEST);
+    mRtContext->transitionResource(textureResource, fromState, D3D12_RESOURCE_STATE_COPY_SOURCE);
 
     commandList->CopyResource(renderTarget, textureResource);
 
-    D3D12_RESOURCE_BARRIER postCopyBarriers[2];
-    postCopyBarriers[0] = CD3DX12_RESOURCE_BARRIER::Transition(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, transitionToState);
-    postCopyBarriers[1] = CD3DX12_RESOURCE_BARRIER::Transition(textureResource, D3D12_RESOURCE_STATE_COPY_SOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-
-    commandList->ResourceBarrier(ARRAYSIZE(postCopyBarriers), postCopyBarriers);
+    mRtContext->transitionResource(renderTarget, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    mRtContext->transitionResource(textureResource, D3D12_RESOURCE_STATE_COPY_SOURCE, toState);
 }
 
 LRESULT DXRFrameworkApp::WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

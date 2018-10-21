@@ -18,6 +18,7 @@ public:
     static SharedPtr create(DXRFramework::RtContext::SharedPtr context) { return SharedPtr(new ProgressiveRaytracingPipeline(context)); }
     ~ProgressiveRaytracingPipeline();
 
+    void userInterface();
     void update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height);
     void render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height);
 
@@ -37,10 +38,11 @@ public:
 
     ID3D12Resource *getOutputResource() { return mOutputResource.Get(); }
     D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle() { return mOutputUavGpuHandle; }
+    D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle() { return mOutputSrvGpuHandle; }
+
+    bool mActive;
 private:
     ProgressiveRaytracingPipeline(DXRFramework::RtContext::SharedPtr context);
-
-    void userInterface();
 
     // Pipeline components
     DXRFramework::RtContext::SharedPtr mRtContext;
@@ -56,7 +58,9 @@ private:
     // Resources
     ComPtr<ID3D12Resource> mOutputResource;
     UINT mOutputUavHeapIndex;
+    UINT mOutputSrvHeapIndex;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle;
+    D3D12_GPU_DESCRIPTOR_HANDLE mOutputSrvGpuHandle;
 
     ConstantBuffer<PerFrameConstants> mConstantBuffer;
 
