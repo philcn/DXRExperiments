@@ -31,7 +31,7 @@ void RayGen()
     payload.distance = 0.0;
     payload.depth = 0;
 
-    float2 jitter = perFrameConstants.cameraParams.jitters * 2.0;
+    float2 jitter = perFrameConstants.cameraParams.jitters * 10.0;
 
     RayDesc ray;
     ray.Origin = perFrameConstants.cameraParams.worldEyePos.xyz + float3(jitter.x, jitter.y, 0.0f);

@@ -192,7 +192,7 @@ void ProgressiveRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames
     calculateCameraVariables(*mCamera, mCamera->GetAspectRatio(), &cameraParams.U, &cameraParams.V, &cameraParams.W);
     float xJitter = (mRngDist(mRng) - 0.5f) / float(width);
     float yJitter = (mRngDist(mRng) - 0.5f) / float(height);
-    cameraParams.jitters = XMFLOAT2(xJitter * 10.0, yJitter * 10.0);
+    cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
     cameraParams.frameCount = elapsedFrames;
     cameraParams.accumCount = mAccumCount++;
 
