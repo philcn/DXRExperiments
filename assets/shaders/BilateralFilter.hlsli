@@ -20,7 +20,7 @@ float4 sampleOffset(Texture2D tex, uint2 sampleLocation, int2 offset)
 
 float colorDistance(float3 c0, float3 c1)
 {
-    return (abs(c0.r - c1.r) + abs(c0.g - c1.g) + abs(c0.b - c1.b)) * 3.0;
+    return (abs(c0.r - c1.r) + abs(c0.g - c1.g) + abs(c0.b - c1.b)) * 10.0;
 }
 
 float calcColorWeight(float4 color0, float4 color1)
@@ -41,12 +41,12 @@ float4 filterKernel(int passId, int kernelMaxSize, float kernelRadius, uint2 pix
     [unroll(40)]
     for (int i = -kernelMaxSize; i <= kernelMaxSize; ++i) {
         float4 sampleColor = sampleOffset(inputTex, pixelCenter, kDirection * i);
-        // float4 sampleColorJoint = sampleOffset(jointTex, pixelCenter, kDirection * i);
+        float4 sampleColorJoint = sampleOffset(jointTex, pixelCenter, kDirection * i);
 
         // float gaussianWeight = kGaussianKernel[clamp(int(float(abs(i) * (KERNEL_TAPS - 1)) / (0.001 + abs(kernelRadius * 0.8))), 0, KERNEL_TAPS)];            
         float gaussianWeight = 1.0;
-        // float colorWeight = calcColorWeight(sampleColorJoint, centerColorJoint);
-        float bilateralWeight = gaussianWeight;// * colorWeight;
+        float colorWeight = calcColorWeight(sampleColorJoint, centerColorJoint);
+        float bilateralWeight = gaussianWeight * colorWeight;
         
         color += sampleColor * bilateralWeight;
         weight += bilateralWeight;

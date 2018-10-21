@@ -1,5 +1,5 @@
-﻿#ifndef SHADER_LIBRARY_HLSL
-#define SHADER_LIBRARY_HLSL
+﻿#ifndef REALTIME_RAYTRACING_HLSL
+#define REALTIME_RAYTRACING_HLSL
 
 #define HLSL
 #include "RaytracingHlslCompat.h"
@@ -16,7 +16,8 @@
 // Global root signature
 ////////////////////////////////////////////////////////////////////////////////
 
-RWTexture2D<float4> gOutput : register(u0);
+RWTexture2D<float4> gDirectLightingOutput : register(u0);
+RWTexture2D<float4> gIndirectSpecularOutput : register(u1);
 RaytracingAccelerationStructure SceneBVH : register(t0);
 ConstantBuffer<PerFrameConstants> perFrameConstants : register(b0);
 
@@ -46,26 +47,38 @@ cbuffer MaterialConstants : register(b0, space1)
 // Miss shader local root signature
 ////////////////////////////////////////////////////////////////////////////////
 
-Texture2D envMap : register(t0, space2);
-TextureCube envCubemap : register(t1, space2);
+TextureCube envCubemap : register(t0, space2);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Ray-gen shader
 ////////////////////////////////////////////////////////////////////////////////
 
+struct ShadingAOV
+{
+    float3 albedo;
+    float roughness;
+    float3 directLighting;
+    float3 indirectSpecular;
+};
+
+struct RealtimePayload
+{
+    float3 color;
+    float distance;
+    ShadingAOV aov;
+    uint depth;
+};
+
 [shader("raygeneration")] 
 void RayGen() 
 {
-    if (perFrameConstants.cameraParams.accumCount >= perFrameConstants.options.maxIterations) {
-        return;
-    }
-
     uint2 launchIndex = DispatchRaysIndex().xy;
     float2 dims = float2(DispatchRaysDimensions().xy);
     float2 d = (((launchIndex.xy + 0.5f) / dims.xy) * 2.f - 1.f);
  
-    HitInfo payload;
-    payload.colorAndDistance = float4(0, 0, 0, 0);
+    RealtimePayload payload;
+    payload.color = float3(0, 0, 0);
+    payload.distance = 0.0;
     payload.depth = 0;
 
     float2 jitter = perFrameConstants.cameraParams.jitters * 2.0;
@@ -78,9 +91,8 @@ void RayGen()
 
     TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
-    float4 prevColor = gOutput[launchIndex];
-    float4 curColor = float4(max(payload.colorAndDistance.rgb, 0.0), 1.0f);
-    gOutput[launchIndex] = (perFrameConstants.cameraParams.accumCount * prevColor + curColor) / (perFrameConstants.cameraParams.accumCount + 1);
+    gDirectLightingOutput[launchIndex] = float4(max(payload.aov.directLighting, 0.0), 1.0f);
+    gIndirectSpecularOutput[launchIndex] = float4(max(payload.aov.indirectSpecular, 0.0), 1.0f);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -140,12 +152,13 @@ float3 shootSecondaryRay(float3 orig, float3 dir, float minT, uint currentDepth)
 
     RayDesc ray = { orig, minT, dir, RAY_MAX_T };
 
-    HitInfo payload;
-    payload.colorAndDistance = float4(0, 0, 0, 0);
+    RealtimePayload payload;
+    payload.color = float3(0, 0, 0);
+    payload.distance = 0.0;
     payload.depth = currentDepth + 1;
 
     TraceRay(SceneBVH, 0, 0xFF, 0, 0, 2, ray, payload);
-    return payload.colorAndDistance.rgb;
+    return payload.color;
 }
 
 float evaluateAO(float3 position, float3 normal)
@@ -222,12 +235,8 @@ float3 evaluateIndirectDiffuse(float3 position, float3 normal, inout uint randSe
     return color / float(rayCount);
 }
 
-float3 shade(float3 position, float3 normal, uint currentDepth)
+float3 shadeAOV(float3 position, float3 normal, uint currentDepth, out ShadingAOV aov)
 {
-    if (perFrameConstants.options.showAmbientOcclusionOnly) {
-        return evaluateAO(position, normal);
-    }
-
     // Set up random seeed
     uint2 pixIdx = DispatchRaysIndex().xy;
     uint2 numPix = DispatchRaysDimensions().xy;
@@ -235,30 +244,11 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
 
     // Calculate direct diffuse lighting
     float3 directContrib = 0.0;
-    if (perFrameConstants.options.debug == 2) {
-        const int numLights = 2;
-        // Select light to evaluate in this iteration
-        if (nextRand(randSeed) < 0.5) {
-            directContrib += evaluateDirectionalLight(position, normal, currentDepth) * numLights;
-        } else {
-            directContrib += evaluatePointLight(position, normal, currentDepth) * numLights;
-        }
-    } else {
-        directContrib += evaluateDirectionalLight(position, normal, currentDepth);
-        directContrib += evaluatePointLight(position, normal, currentDepth);
-    }
-
-    // Calculate indirect diffuse
-    float3 indirectContrib = 0.0;
-    if (currentDepth < 1) {
-        indirectContrib += evaluateIndirectDiffuse(position, normal, randSeed, currentDepth);
-    }
-
-    float3 diffuseComponent = (directContrib + indirectContrib) / M_PI;
-
-    float fresnel = 0.0;
+    directContrib += evaluateDirectionalLight(position, normal, currentDepth);
+    directContrib += evaluatePointLight(position, normal, currentDepth);
 
     // Accumulate indirect specular
+    float fresnel = 0.0;
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
         if (materialParams.reflectivity > 0.001) {
@@ -274,37 +264,31 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
             fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular);
         }
     }
- 
-    // Debug visualization
+
     if (currentDepth == 0) {
-        if (perFrameConstants.options.showIndirectDiffuseOnly) {
-            return materialParams.albedo * indirectContrib / M_PI;
-        } else if (perFrameConstants.options.showIndirectSpecularOnly) {
-            return fresnel * materialParams.specular * specularComponent;
-        } else if (perFrameConstants.options.showFresnelTerm) {
-            return fresnel;
-        } else if (perFrameConstants.options.showGBufferAlbedoOnly) {
-            return materialParams.albedo;
-        } else if (perFrameConstants.options.showDirectLightingOnly) {
-            return materialParams.albedo * directContrib / M_PI;
-        } else if (perFrameConstants.options.showReflectionDenoiseGuide) {
-            return materialParams.roughness;
-        }
+        aov.albedo = materialParams.albedo;
+        aov.roughness = materialParams.roughness;
+        aov.directLighting = materialParams.albedo * directContrib / M_PI;
+        aov.indirectSpecular = fresnel * materialParams.specular * materialParams.reflectivity * specularComponent;
     }
 
-    return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo * diffuseComponent + fresnel * materialParams.reflectivity * specularComponent;
+    return materialParams.albedo * directContrib / M_PI + fresnel * materialParams.specular * materialParams.reflectivity * specularComponent;
 }
 
 // Hit group 1
 
 [shader("closesthit")] 
-void PrimaryClosestHit(inout HitInfo payload, Attributes attrib) 
+void PrimaryClosestHit(inout RealtimePayload payload, Attributes attrib) 
 {
     float3 vertPosition, vertNormal;
     interpolateVertexAttributes(attrib.bary, vertPosition, vertNormal);
 
-    float3 color = shade(HitWorldPosition(), normalize(vertNormal), payload.depth);
-    payload.colorAndDistance = float4(color, RayTCurrent());
+    ShadingAOV shadingResult;
+    float3 color = shadeAOV(HitWorldPosition(), normalize(vertNormal), payload.depth, shadingResult);
+
+    payload.color = color;
+    payload.distance = RayTCurrent();
+    payload.aov = shadingResult;
 }
 
 // Hit group 2
@@ -327,20 +311,17 @@ void ShadowAnyHit(inout ShadowPayload payload, Attributes attrib)
 
 float3 sampleEnvironment()
 {
-    // cubemap
     float4 envSample = envCubemap.SampleLevel(defaultSampler, WorldRayDirection().xyz, 0.0);
-
-    // lat-long environment map
-    // float2 uv = wsVectorToLatLong(WorldRayDirection().xyz);
-    // float4 envSample = envMap.SampleLevel(defaultSampler, uv, 0.0);
-
-    return envSample.rgb * perFrameConstants.options.environmentStrength;
+    return envSample.rgb;
 }
 
 [shader("miss")]
-void PrimaryMiss(inout HitInfo payload : SV_RayPayload)
+void PrimaryMiss(inout RealtimePayload payload : SV_RayPayload)
 {
-    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
+    payload.color = sampleEnvironment();
+    payload.distance = -1.0;
+    payload.aov.directLighting = payload.color;
+    payload.aov.indirectSpecular = 0.0;
 }
 
 [shader("miss")]
@@ -350,9 +331,11 @@ void ShadowMiss(inout ShadowPayload payload : SV_RayPayload)
 }
 
 [shader("miss")]
-void SecondaryMiss(inout HitInfo payload : SV_RayPayload)
+void SecondaryMiss(inout RealtimePayload payload : SV_RayPayload)
 {
-    payload.colorAndDistance = float4(sampleEnvironment(), -1.0);
+    payload.color = sampleEnvironment();
+    payload.distance = -1.0;
+    payload.aov.indirectSpecular = 0.0;
 }
 
-#endif // SHADER_LIBRARY_HLSL
+#endif // REALTIME_RAYTRACING_HLSL

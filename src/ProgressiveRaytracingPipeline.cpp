@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "ProgressiveRaytracingPipeline.h"
-#include "CompiledShaders/ShaderLibrary.hlsl.h"
+#include "CompiledShaders/ProgressiveRaytracing.hlsl.h"
 #include "WICTextureLoader.h"
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
@@ -27,8 +27,6 @@ namespace GlobalRootSignatureParams
 
 ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPtr context) :
     mRtContext(context),
-    mOutputUavHeapIndex(UINT_MAX),
-    mOutputSrvHeapIndex(UINT_MAX),
     mFrameAccumulationEnabled(false),
     mAnimationPaused(true),
     mActive(true)
@@ -36,7 +34,7 @@ ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPt
     RtProgram::Desc programDesc;
     {
         std::vector<std::wstring> libraryExports = { L"RayGen", L"PrimaryClosestHit", L"PrimaryMiss", L"ShadowClosestHit", L"ShadowAnyHit", L"ShadowMiss", L"SecondaryMiss" };
-        programDesc.addShaderLibrary(g_pShaderLibrary, ARRAYSIZE(g_pShaderLibrary), libraryExports);
+        programDesc.addShaderLibrary(g_pProgressiveRaytracing, ARRAYSIZE(g_pProgressiveRaytracing), libraryExports);
         programDesc.setRayGen("RayGen");
         programDesc.addHitGroup(0, "PrimaryClosestHit", "").addMiss(0, "PrimaryMiss");
         programDesc.addHitGroup(1, "ShadowClosestHit", "ShadowAnyHit").addMiss(1, "ShadowMiss");
@@ -72,6 +70,8 @@ ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPt
     mRtState = RtState::create(context); 
     mRtState->setProgram(mRtProgram);
     mRtState->setMaxTraceRecursionDepth(4);
+    mRtState->setMaxAttributeSize(8);
+    mRtState->setMaxPayloadSize(20);
 
     mShaderDebugOptions.maxIterations = 1024;
     mShaderDebugOptions.cosineHemisphereSampling = true;

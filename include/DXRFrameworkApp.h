@@ -4,6 +4,7 @@
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtScene.h"
 #include "ProgressiveRaytracingPipeline.h"
+#include "RealtimeRaytracingPipeline.h"
 #include "DenoiseCompositor.h"
 #include "Camera.h"
 #include "CameraController.h"
@@ -34,7 +35,7 @@ private:
 
     DXRFramework::RtContext::SharedPtr mRtContext;
     DXRFramework::RtScene::SharedPtr mRtScene;
-    ProgressiveRaytracingPipeline::SharedPtr mRaytracingPipeline;
+    RealtimeRaytracingPipeline::SharedPtr mRaytracingPipeline;
     DenoiseCompositor::SharedPtr mDenoiser;
 
     void InitRaytracing();

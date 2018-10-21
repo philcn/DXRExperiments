@@ -11,7 +11,13 @@ public:
     ~DenoiseCompositor() = default;
 
     void userInterface();
-    void dispatch(ID3D12GraphicsCommandList *commandList, D3D12_GPU_DESCRIPTOR_HANDLE inputSrvHandle, UINT frameIndex, UINT width, UINT height);
+
+    struct InputComponents
+    {
+        D3D12_GPU_DESCRIPTOR_HANDLE directLightingSrv;
+        D3D12_GPU_DESCRIPTOR_HANDLE indirectSpecularSrv;
+    };
+    void dispatch(ID3D12GraphicsCommandList *commandList, InputComponents inputs, UINT frameIndex, UINT width, UINT height);
 
     void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount, bool loadMockResources);
     void createOutputResource(DXGI_FORMAT format, UINT width, UINT height);
@@ -42,6 +48,7 @@ private:
         UINT tonemap;
         UINT gammaCorrect;
         int maxKernelSize;
+        UINT debugVisualize; // 0: composite, 1: show denoised, 2: show input, 3: show joint
     };
 
     ConstantBuffer<DenoiserParams> mConstantBuffer;

@@ -76,7 +76,7 @@ void DXRFrameworkApp::InitRaytracing()
     auto commandList = m_deviceResources->GetCommandList();
 
     mRtContext = RtContext::create(device, commandList, false /* force compute */);
-    mRaytracingPipeline = ProgressiveRaytracingPipeline::create(mRtContext);
+    mRaytracingPipeline = RealtimeRaytracingPipeline::create(mRtContext);
 
     // Create scene
     mRtScene = RtScene::create();
@@ -90,7 +90,7 @@ void DXRFrameworkApp::InitRaytracing()
 
     // Configure raytracing pipeline
     {
-        ProgressiveRaytracingPipeline::Material material1 = {};
+        RealtimeRaytracingPipeline::Material material1 = {};
         material1.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
         material1.params.specular = XMFLOAT4(0.58f, 0.58f, 0.58f, 1.0f);
         material1.params.roughness = 0.08f;
@@ -129,7 +129,7 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    ui::Checkbox("ProgressiveRaytracingPipeline", &mRaytracingPipeline->mActive);
+    ui::Checkbox("RealtimeRaytracingPipeline", &mRaytracingPipeline->mActive);
     ui::Checkbox("DenosieCompositor", &mDenoiser->mActive);
 
     if (mRaytracingPipeline->mActive) {
@@ -160,21 +160,30 @@ void DXRFrameworkApp::OnRender()
 
         // Run denoiser with mock input textures
         if (mBypassRaytracing && mDenoiser->mActive) {
-            mDenoiser->dispatch(commandList, D3D12_GPU_DESCRIPTOR_HANDLE{0}, currentFrame, GetWidth(), GetHeight());
+            mDenoiser->dispatch(commandList, DenoiseCompositor::InputComponents{0}, currentFrame, GetWidth(), GetHeight());
             BlitToBackbuffer(mDenoiser->getOutputResource());
         }
     } else {
         mRaytracingPipeline->render(commandList, currentFrame, GetWidth(), GetHeight());
 
-        auto outputResource = mRaytracingPipeline->getOutputResource();
         if (mDenoiser->mActive) {
-            mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-            mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputSrvHandle(), currentFrame, GetWidth(), GetHeight());
+            for (int i = 0; i < mRaytracingPipeline->getNumOutputs(); ++i) {
+                mRtContext->transitionResource(mRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+            }
 
-            mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            DenoiseCompositor::InputComponents inputs = {};
+            inputs.directLightingSrv = mRaytracingPipeline->getOutputSrvHandle(0);
+            inputs.indirectSpecularSrv = mRaytracingPipeline->getOutputSrvHandle(1);
+
+            mDenoiser->dispatch(commandList, inputs, currentFrame, GetWidth(), GetHeight());
+
+            for (int i = 0; i < mRaytracingPipeline->getNumOutputs(); ++i) {
+                mRtContext->transitionResource(mRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            }
+
             BlitToBackbuffer(mDenoiser->getOutputResource());
         } else {
-            BlitToBackbuffer(outputResource);
+            BlitToBackbuffer(mRaytracingPipeline->getOutputResource(0));
         }
     }
 

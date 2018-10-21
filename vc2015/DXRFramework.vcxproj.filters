@@ -536,10 +536,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\assets\shaders\ShaderLibrary.hlsl">
+    <FxCompile Include="..\assets\shaders\RealtimeRaytracing.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\assets\shaders\Compute.hlsl">
+    <FxCompile Include="..\assets\shaders\ProgressiveRaytracing.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\assets\shaders\DenoiseCompositor.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

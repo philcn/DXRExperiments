@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "DenoiseCompositor.h"
-#include "CompiledShaders/Compute.hlsl.h"
+#include "CompiledShaders/DenoiseCompositor.hlsl.h"
 #include "nv_helpers_dx12/RootSignatureGenerator.h"
 #include "DXSampleHelper.h"
 #include "DirectXRaytracingHelper.h"
@@ -19,6 +19,7 @@ DenoiseCompositor::DenoiseCompositor(DXRFramework::RtContext::SharedPtr context)
 
     RootSignatureGenerator rsConfig;
     rsConfig.AddHeapRangesParameter({ {0 /* t0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0} });
+    rsConfig.AddHeapRangesParameter({ {1 /* t1 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0} });
     rsConfig.AddHeapRangesParameter({ {0 /* u0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0} });
     rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /* b0 */, 0, 1);
     rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 1 /* b1 */, 0, 1);
@@ -27,7 +28,7 @@ DenoiseCompositor::DenoiseCompositor(DXRFramework::RtContext::SharedPtr context)
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
     computePsoDesc.pRootSignature = mComputeRootSignature.Get();
-    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pCompute, ARRAYSIZE(g_pCompute));
+    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pDenoiseCompositor, ARRAYSIZE(g_pDenoiseCompositor));
 
     ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mComputeState)));
     NAME_D3D12_OBJECT(mComputeState);
@@ -43,6 +44,7 @@ void DenoiseCompositor::loadResources(ID3D12CommandQueue *uploadCommandQueue, UI
     mConstantBuffer->tonemap = true;
     mConstantBuffer->gammaCorrect = false;
     mConstantBuffer->maxKernelSize = 12;
+    mConstantBuffer->debugVisualize = 0;
 
     if (loadMockResources) {
         mTextureResources.resize(1);
@@ -95,30 +97,32 @@ void DenoiseCompositor::userInterface()
     ui::Checkbox("Tonemap", (bool*)&mConstantBuffer->tonemap);
     ui::Checkbox("Gamma correct", (bool*)&mConstantBuffer->gammaCorrect);
     ui::SliderInt("Max Kernel Size", &mConstantBuffer->maxKernelSize, 1, 25);
+    ui::SliderInt("Debug Visualize", (int*)&mConstantBuffer->debugVisualize, 0, 3);
     ui::End();
 }
 
-void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, D3D12_GPU_DESCRIPTOR_HANDLE inputSrvHandle, UINT frameIndex, UINT width, UINT height)
+void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, DenoiseCompositor::InputComponents inputs, UINT frameIndex, UINT width, UINT height)
 {
     mConstantBuffer.CopyStagingToGpu(frameIndex);
 
-    if (inputSrvHandle.ptr == 0) {
-        inputSrvHandle = mTextureSrvGpuHandles[0];
+    if (inputs.directLightingSrv.ptr == 0) {
+        inputs.directLightingSrv = mTextureSrvGpuHandles[0];
     }
 
     mRtContext->bindDescriptorHeap();
 
     commandList->SetPipelineState(mComputeState.Get());
     commandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    commandList->SetComputeRootConstantBufferView(2, mConstantBuffer.GpuVirtualAddress(frameIndex));
+    commandList->SetComputeRootConstantBufferView(3, mConstantBuffer.GpuVirtualAddress(frameIndex));
 
     const UINT TileSize = 16;
 
     // pass 0
     {
-        commandList->SetComputeRootDescriptorTable(0, inputSrvHandle);
-        commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle[0]);
-        commandList->SetComputeRoot32BitConstant(3, 0, 0);
+        commandList->SetComputeRootDescriptorTable(0, inputs.directLightingSrv);
+        commandList->SetComputeRootDescriptorTable(1, inputs.indirectSpecularSrv);
+        commandList->SetComputeRootDescriptorTable(2, mOutputUavGpuHandle[0]);
+        commandList->SetComputeRoot32BitConstant(4, 0, 0);
         commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
 
         mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
@@ -127,9 +131,10 @@ void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, D3D12_G
 
     // pass 1
     {
-        commandList->SetComputeRootDescriptorTable(0, mOutputSrvGpuHandle[0]);
-        commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle[1]);
-        commandList->SetComputeRoot32BitConstant(3, 1, 0);
+        commandList->SetComputeRootDescriptorTable(0, inputs.directLightingSrv);
+        commandList->SetComputeRootDescriptorTable(1, mOutputSrvGpuHandle[0]);
+        commandList->SetComputeRootDescriptorTable(2, mOutputUavGpuHandle[1]);
+        commandList->SetComputeRoot32BitConstant(4, 1, 0);
         commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
 
         mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

@@ -57,8 +57,8 @@ private:
 
     // Resources
     ComPtr<ID3D12Resource> mOutputResource;
-    UINT mOutputUavHeapIndex;
-    UINT mOutputSrvHeapIndex;
+    UINT mOutputUavHeapIndex = UINT_MAX;
+    UINT mOutputSrvHeapIndex = UINT_MAX;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle;
     D3D12_GPU_DESCRIPTOR_HANDLE mOutputSrvGpuHandle;
 

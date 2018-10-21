@@ -1,6 +1,7 @@
 #include "BilateralFilter.hlsli"
 
-Texture2D<float4> gInput : register(t0);
+Texture2D<float4> gDirectLighting : register(t0);
+Texture2D<float4> gInput : register(t1);
 RWTexture2D<float4> gOutput : register(u0);
 
 cbuffer Params : register(b0)
@@ -10,6 +11,7 @@ cbuffer Params : register(b0)
     uint gTonemap;
     uint gGammaCorrect;
     int gMaxKernelSize;
+    uint gDebugVisualize;
 }
 
 cbuffer PerPassParams : register(b1)
@@ -39,9 +41,21 @@ void main(uint3 dispatchID : SV_DispatchThreadID, uint3 threadID : SV_GroupThrea
 {
     float3 color = gInput[dispatchID.xy].rgb;
 
-    color = filterKernel(gPass, gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gInput).rgb;
+    if (gDebugVisualize != 2) {
+        color = filterKernel(gPass, gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gDirectLighting).rgb;
+    }
 
     if (gPass == 1) {
+        if (gDebugVisualize == 0) {
+            color += gDirectLighting[dispatchID.xy].rgb;
+        } else if (gDebugVisualize == 1) {
+            // no-op
+        } else if (gDebugVisualize == 2) {
+            // no-op
+        } else if (gDebugVisualize == 3) {
+            color = gDirectLighting[dispatchID.xy].rgb;
+        }
+
         color *= gExposure;
         if (gTonemap) {
             color = max(reinhardToneMap(color), 0.0);
