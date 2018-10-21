@@ -62,6 +62,7 @@ RealtimeRaytracingPipeline::RealtimeRaytracingPipeline(RtContext::SharedPtr cont
         });
         programDesc.configureMissRootSignature([] (RootSignatureGenerator &config) {
             config.AddHeapRangesParameter({{0 /* t0 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
+            config.AddHeapRangesParameter({{1 /* t1 */, 1, 2 /* space2 */, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0}});
         });
     }
     mRtProgram = RtProgram::create(context, programDesc);
@@ -91,20 +92,22 @@ void RealtimeRaytracingPipeline::buildAccelerationStructures()
 
 void RealtimeRaytracingPipeline::loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount)
 {        
-    mTextureResources.resize(1);
-    mTextureSrvGpuHandles.resize(1);
+    mTextureResources.resize(2);
+    mTextureSrvGpuHandles.resize(2);
 
     // Create and upload global textures
     auto device = mRtContext->getDevice();
     ResourceUploadBatch resourceUpload(device);
     resourceUpload.Begin();
     {
-        ThrowIfFailed(CreateDDSTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\CathedralRadiance.dds", &mTextureResources[0]));
+        ThrowIfFailed(CreateWICTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\HdrStudioProductNightStyx001_JPG_8K.jpg", &mTextureResources[0], true));
+        ThrowIfFailed(CreateDDSTextureFromFile(device, resourceUpload, L"..\\assets\\textures\\CathedralRadiance.dds", &mTextureResources[1]));
     }
     auto uploadResourcesFinished = resourceUpload.End(uploadCommandQueue);
     uploadResourcesFinished.wait();
 
-    mTextureSrvGpuHandles[0] = mRtContext->createTextureSRVHandle(mTextureResources[0].Get(), true);
+    mTextureSrvGpuHandles[0] = mRtContext->createTextureSRVHandle(mTextureResources[0].Get());
+    mTextureSrvGpuHandles[1] = mRtContext->createTextureSRVHandle(mTextureResources[1].Get(), true);
 
     // Create per-frame constant buffer
     mConstantBuffer.Create(device, frameCount, L"PerFrameConstantBuffer");
@@ -192,6 +195,8 @@ void RealtimeRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames, U
     XMStoreFloat4(&mConstantBuffer->pointLight.worldPos, pointLightPos);
     mConstantBuffer->pointLight.color = pointLightColor;
 
+    mConstantBuffer->options.environmentStrength = 1.0f;
+
     mConstantBuffer.CopyStagingToGpu(frameIndex);
 }
 
@@ -212,6 +217,7 @@ void RealtimeRaytracingPipeline::render(ID3D12GraphicsCommandList *commandList, 
     for (int rayType = 0; rayType < program->getMissProgramCount(); ++rayType) {
         auto &missVars = mRtBindings->getMissVars(rayType);
         missVars->appendHeapRanges(mTextureSrvGpuHandles[0].ptr);
+        missVars->appendHeapRanges(mTextureSrvGpuHandles[1].ptr);
     }
 
     mRtBindings->apply(mRtContext, mRtState);

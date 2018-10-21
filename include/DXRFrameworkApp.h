@@ -3,8 +3,7 @@
 #include "DXSample.h"
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtScene.h"
-#include "ProgressiveRaytracingPipeline.h"
-#include "RealtimeRaytracingPipeline.h"
+#include "RaytracingPipeline.h"
 #include "DenoiseCompositor.h"
 #include "Camera.h"
 #include "CameraController.h"
@@ -35,7 +34,12 @@ private:
 
     DXRFramework::RtContext::SharedPtr mRtContext;
     DXRFramework::RtScene::SharedPtr mRtScene;
-    RealtimeRaytracingPipeline::SharedPtr mRaytracingPipeline;
+    
+    std::vector<RaytracingPipeline::SharedPtr> mRaytracingPipelines;
+    RaytracingPipeline *mActiveRaytracingPipeline;
+    int mActivePipelineIndex;
+    std::vector<const char *> mPipelineNames;
+
     DenoiseCompositor::SharedPtr mDenoiser;
 
     void InitRaytracing();

@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "DXRFrameworkApp.h"
+#include "ProgressiveRaytracingPipeline.h"
+#include "RealtimeRaytracingPipeline.h"
 #include "nv_helpers_dx12/DXRHelper.h"
 #include "DirectXRaytracingHelper.h"
 #include "ImGuiRendererDX.h"
@@ -54,7 +56,7 @@ void DXRFrameworkApp::OnInit()
     // Setup camera states
     mCamera.reset(new Math::Camera());
     mCamera->SetAspectRatio(m_aspectRatio);
-    mCamera->SetEyeAtUp(Math::Vector3(1.0, 1.2, 4.0), Math::Vector3(0.0, 0.5, 0.0), Math::Vector3(Math::kYUnitVector));
+    mCamera->SetEyeAtUp(Math::Vector3(8.0, 10.0, 30.0), Math::Vector3(0.0, 1.5, 0.0), Math::Vector3(Math::kYUnitVector));
     mCamera->SetZRange(1.0f, 10000.0f);
     mCamController.reset(new GameCore::CameraController(*mCamera, mCamera->GetUpVec()));
     mCamController->EnableFirstPersonMouse(false);
@@ -76,7 +78,6 @@ void DXRFrameworkApp::InitRaytracing()
     auto commandList = m_deviceResources->GetCommandList();
 
     mRtContext = RtContext::create(device, commandList, false /* force compute */);
-    mRaytracingPipeline = RealtimeRaytracingPipeline::create(mRtContext);
 
     // Create scene
     mRtScene = RtScene::create();
@@ -86,30 +87,47 @@ void DXRFrameworkApp::InitRaytracing()
         // working directory is "vc2015"
         mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\pica\\Machines.fbx"), identity);
     }
-    mRaytracingPipeline->setScene(mRtScene);
 
-    // Configure raytracing pipeline
+    // Create materials
+    std::vector<RaytracingPipeline::Material> materials;
+    materials.resize(1);
     {
-        RealtimeRaytracingPipeline::Material material1 = {};
+        RaytracingPipeline::Material &material1 = materials[0];
         material1.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
         material1.params.specular = XMFLOAT4(0.58f, 0.58f, 0.58f, 1.0f);
         material1.params.roughness = 0.08f;
         material1.params.reflectivity = 1.0f;
         material1.params.type = 1;
-
-        mRaytracingPipeline->addMaterial(material1);
     }
-    mRaytracingPipeline->setCamera(mCamera);
-    mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
-    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 
-    if (!mBypassRaytracing) {
+    // Create raytracing pipelines
+    mRaytracingPipelines.emplace_back(RealtimeRaytracingPipeline::create(mRtContext));
+    mRaytracingPipelines.emplace_back(ProgressiveRaytracingPipeline::create(mRtContext));
+
+    // Populate raytracing pipelines
+    for (auto pipeline : mRaytracingPipelines) {
+        mPipelineNames.emplace_back(pipeline->getName());
+
+        pipeline->setScene(mRtScene);
+        for (auto &m : materials) {
+            pipeline->addMaterial(m);
+        }
+
+        pipeline->setCamera(mCamera);
+        pipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
+        pipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+
         // Build acceleration structures
-        commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
-        mRaytracingPipeline->buildAccelerationStructures();
-        m_deviceResources->ExecuteCommandList();
-        m_deviceResources->WaitForGpu();
+        if (!mBypassRaytracing) {
+            commandList->Reset(m_deviceResources->GetCommandAllocator(), nullptr);
+            pipeline->buildAccelerationStructures();
+            m_deviceResources->ExecuteCommandList();
+            m_deviceResources->WaitForGpu();
+        }
     }
+
+    mActiveRaytracingPipeline = mRaytracingPipelines.front().get();
+    mActivePipelineIndex = 0;
 
     mDenoiser = DenoiseCompositor::create(mRtContext);
     mDenoiser->loadResources(m_deviceResources->GetCommandQueue(), FrameCount, mBypassRaytracing);
@@ -129,15 +147,21 @@ void DXRFrameworkApp::OnUpdate()
     GameInput::Update(deltaTime);
     mCamController->Update(deltaTime);
 
-    ui::Checkbox("RealtimeRaytracingPipeline", &mRaytracingPipeline->mActive);
-    ui::Checkbox("DenosieCompositor", &mDenoiser->mActive);
+    {
+        if (ui::Combo("Pipeline Select", &mActivePipelineIndex, mPipelineNames.data(), mRaytracingPipelines.size())) {
+            mActiveRaytracingPipeline = mRaytracingPipelines[mActivePipelineIndex].get();
+        }
 
-    if (mRaytracingPipeline->mActive) {
-        mRaytracingPipeline->userInterface();
-        mRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+        ui::Checkbox(mActiveRaytracingPipeline->getName(), mActiveRaytracingPipeline->isActive());
+        ui::Checkbox("Denoise Compositor", &mDenoiser->mActive);
     }
 
-    if (mDenoiser->mActive) {
+    if (*mActiveRaytracingPipeline->isActive()) {
+        mActiveRaytracingPipeline->userInterface();
+        mActiveRaytracingPipeline->update(elapsedTime, GetFrameCount(), m_deviceResources->GetPreviousFrameIndex(), m_deviceResources->GetCurrentFrameIndex(), GetWidth(), GetHeight());
+    }
+
+    if (dynamic_cast<RealtimeRaytracingPipeline*>(mActiveRaytracingPipeline) && mDenoiser->mActive) {
         mDenoiser->userInterface();
     }
 }
@@ -151,7 +175,7 @@ void DXRFrameworkApp::OnRender()
     auto commandList = m_deviceResources->GetCommandList();
     auto currentFrame = m_deviceResources->GetCurrentFrameIndex();
 
-    if (mBypassRaytracing || !mRaytracingPipeline->mActive) {
+    if (mBypassRaytracing || !*mActiveRaytracingPipeline->isActive()) {
         auto rtvHandle = m_deviceResources->GetRenderTargetView();
         const float clearColor[] = { 0.3f, 0.2f, 0.1f, 1.0f };
         commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
@@ -164,26 +188,26 @@ void DXRFrameworkApp::OnRender()
             BlitToBackbuffer(mDenoiser->getOutputResource());
         }
     } else {
-        mRaytracingPipeline->render(commandList, currentFrame, GetWidth(), GetHeight());
+        mActiveRaytracingPipeline->render(commandList, currentFrame, GetWidth(), GetHeight());
 
-        if (mDenoiser->mActive) {
-            for (int i = 0; i < mRaytracingPipeline->getNumOutputs(); ++i) {
-                mRtContext->transitionResource(mRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        if (dynamic_cast<RealtimeRaytracingPipeline*>(mActiveRaytracingPipeline) && mDenoiser->mActive) {
+            for (int i = 0; i < mActiveRaytracingPipeline->getNumOutputs(); ++i) {
+                mRtContext->transitionResource(mActiveRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             }
 
             DenoiseCompositor::InputComponents inputs = {};
-            inputs.directLightingSrv = mRaytracingPipeline->getOutputSrvHandle(0);
-            inputs.indirectSpecularSrv = mRaytracingPipeline->getOutputSrvHandle(1);
+            inputs.directLightingSrv = mActiveRaytracingPipeline->getOutputSrvHandle(0);
+            inputs.indirectSpecularSrv = mActiveRaytracingPipeline->getOutputSrvHandle(1);
 
             mDenoiser->dispatch(commandList, inputs, currentFrame, GetWidth(), GetHeight());
 
-            for (int i = 0; i < mRaytracingPipeline->getNumOutputs(); ++i) {
-                mRtContext->transitionResource(mRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+            for (int i = 0; i < mActiveRaytracingPipeline->getNumOutputs(); ++i) {
+                mRtContext->transitionResource(mActiveRaytracingPipeline->getOutputResource(i), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             }
 
             BlitToBackbuffer(mDenoiser->getOutputResource());
         } else {
-            BlitToBackbuffer(mRaytracingPipeline->getOutputResource(0));
+            BlitToBackbuffer(mActiveRaytracingPipeline->getOutputResource(0));
         }
     }
 
@@ -207,7 +231,16 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
     case 'F':
         mCamController->EnableFirstPersonMouse(!mCamController->IsFirstPersonMouseEnabled());
         break;
+    case VK_RIGHT:
+        mActivePipelineIndex++;
+        break;
+    case VK_LEFT:
+        mActivePipelineIndex--;
+        break;
     }
+
+    mActivePipelineIndex %= mRaytracingPipelines.size();
+    mActiveRaytracingPipeline = mRaytracingPipelines[mActivePipelineIndex].get();
 }
 
 void DXRFrameworkApp::OnDestroy()
@@ -227,7 +260,10 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
     UpdateForSizeChange(width, height);
 
     mCamera->SetAspectRatio(m_aspectRatio);
-    mRaytracingPipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+
+    for (auto pipeline : mRaytracingPipelines) {
+        pipeline->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
+    }
     mDenoiser->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 

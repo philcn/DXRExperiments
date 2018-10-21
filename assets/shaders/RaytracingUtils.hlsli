@@ -16,6 +16,9 @@
 # ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **********************************************************************************************************************/
 
+#ifndef RAYTRACING_UTILS_HLSLI
+#define RAYTRACING_UTILS_HLSLI
+
 #define M_PI 3.1415927
 #define M_1_PI (1.0 / M_PI)
 
@@ -215,3 +218,5 @@ float2 wsVectorToLatLong(float3 dir)
     float v = acos(p.y) * M_1_PI;
     return float2(u, v);
 }
+
+#endif // RAYTRACING_UTILS_HLSLI

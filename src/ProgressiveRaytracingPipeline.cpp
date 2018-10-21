@@ -80,8 +80,8 @@ ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPt
     mShaderDebugOptions.showAmbientOcclusionOnly = false;
     mShaderDebugOptions.showGBufferAlbedoOnly = false;
     mShaderDebugOptions.showDirectLightingOnly = false;
-    mShaderDebugOptions.showReflectionDenoiseGuide = false;
     mShaderDebugOptions.showFresnelTerm = false;
+    mShaderDebugOptions.noIndirectDiffuse = true;
     mShaderDebugOptions.environmentStrength = 1.0f;
     mShaderDebugOptions.debug = 0;
 
@@ -192,7 +192,7 @@ void ProgressiveRaytracingPipeline::update(float elapsedTime, UINT elapsedFrames
     calculateCameraVariables(*mCamera, mCamera->GetAspectRatio(), &cameraParams.U, &cameraParams.V, &cameraParams.W);
     float xJitter = (mRngDist(mRng) - 0.5f) / float(width);
     float yJitter = (mRngDist(mRng) - 0.5f) / float(height);
-    cameraParams.jitters = XMFLOAT2(xJitter, yJitter);
+    cameraParams.jitters = XMFLOAT2(xJitter * 10.0, yJitter * 10.0);
     cameraParams.frameCount = elapsedFrames;
     cameraParams.accumCount = mAccumCount++;
 
@@ -297,8 +297,8 @@ void ProgressiveRaytracingPipeline::userInterface()
         frameDirty |= ui::Checkbox("Ambient Occlusion Only", (bool*)&mShaderDebugOptions.showAmbientOcclusionOnly);
         frameDirty |= ui::Checkbox("GBuffer Albedo Only", (bool*)&mShaderDebugOptions.showGBufferAlbedoOnly);
         frameDirty |= ui::Checkbox("Direct Lighting Only", (bool*)&mShaderDebugOptions.showDirectLightingOnly);
-        frameDirty |= ui::Checkbox("Reflection Denoise Guide", (bool*)&mShaderDebugOptions.showReflectionDenoiseGuide);
         frameDirty |= ui::Checkbox("Fresnel Term Only", (bool*)&mShaderDebugOptions.showFresnelTerm);
+        frameDirty |= ui::Checkbox("No Indirect Diffuse", (bool*)&mShaderDebugOptions.noIndirectDiffuse);
         frameDirty |= ui::SliderFloat("Environment Strength", &mShaderDebugOptions.environmentStrength, 0.0f, 10.0f);
         frameDirty |= ui::SliderInt("Debug", (int*)&mShaderDebugOptions.debug, 0, 2);
 

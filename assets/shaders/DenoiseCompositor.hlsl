@@ -39,9 +39,10 @@ float3 linearToSRGB(float3 color)
 [numthreads(16, 16, 1)]
 void main(uint3 dispatchID : SV_DispatchThreadID, uint3 threadID : SV_GroupThreadID, uint3 groupID : SV_GroupID)
 {
-    float3 color = gInput[dispatchID.xy].rgb;
-
-    if (gDebugVisualize != 2) {
+    float3 color;
+    if (gDebugVisualize == 2) {
+        color = gInput[dispatchID.xy].rgb;
+    } else {
         color = filterKernel(gPass, gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gDirectLighting).rgb;
     }
 

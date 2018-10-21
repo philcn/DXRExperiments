@@ -145,6 +145,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\nv_helpers_dx12\ShaderBindingTableGenerator.h" />
     <ClInclude Include="..\include\nv_helpers_dx12\TopLevelASGenerator.h" />
     <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h" />
+    <ClInclude Include="..\include\RaytracingPipeline.h" />
     <ClInclude Include="..\include\RealtimeRaytracingPipeline.h" />
     <ClInclude Include="..\include\stdafx.h" />
     <ClInclude Include="..\include\utils\DeviceResources.h" />
@@ -405,6 +406,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <None Include="..\assets\shaders\BilateralFilter.hlsli">
       <FileType>Document</FileType>
     </None>
+    <None Include="..\assets\shaders\RaytracingCommon.hlsli" />
     <None Include="..\assets\shaders\RaytracingUtils.hlsli" />
     <None Include="..\libs\MiniEngine\Math\Functions.inl" />
   </ItemGroup>

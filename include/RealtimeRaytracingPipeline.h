@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RaytracingPipeline.h"
 #include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtProgram.h"
@@ -10,38 +11,33 @@
 #include <vector>
 #include <random>
 
-class RealtimeRaytracingPipeline
+class RealtimeRaytracingPipeline : public RaytracingPipeline
 {
 public:
     using SharedPtr = std::shared_ptr<RealtimeRaytracingPipeline>;
 
     static SharedPtr create(DXRFramework::RtContext::SharedPtr context) { return SharedPtr(new RealtimeRaytracingPipeline(context)); }
-    ~RealtimeRaytracingPipeline();
+    virtual ~RealtimeRaytracingPipeline();
 
-    void userInterface();
-    void update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height);
-    void render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height);
+    virtual void userInterface() override;
+    virtual void update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height) override;
+    virtual void render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height) override;
 
-    void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount);
-    void createOutputResource(DXGI_FORMAT format, UINT width, UINT height);
-    void buildAccelerationStructures();
+    virtual void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount) override;
+    virtual void createOutputResource(DXGI_FORMAT format, UINT width, UINT height) override;
+    virtual void buildAccelerationStructures() override;
 
-    struct Material 
-    {
-        MaterialParams params;
-        // textures
-    };
+    virtual void addMaterial(Material material) override { mMaterials.push_back(material); }
+    virtual void setCamera(std::shared_ptr<Math::Camera> camera) override { mCamera = camera; }
+    virtual void setScene(DXRFramework::RtScene::SharedPtr scene) override;
 
-    void addMaterial(Material material) { mMaterials.push_back(material); }
-    void setCamera(std::shared_ptr<Math::Camera> camera) { mCamera = camera; }
-    void setScene(DXRFramework::RtScene::SharedPtr scene);
+    virtual int getNumOutputs() override { return kNumOutputResources; }
+    virtual ID3D12Resource *getOutputResource(UINT id) override { return mOutputResource[id].Get(); }
+    virtual D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle(UINT id) override { return mOutputUavGpuHandle[id]; }
+    virtual D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle(UINT id) override { return mOutputSrvGpuHandle[id]; }
 
-    int getNumOutputs() { return kNumOutputResources; }
-    ID3D12Resource *getOutputResource(UINT id) { return mOutputResource[id].Get(); }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle(UINT id) { return mOutputUavGpuHandle[id]; }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle(UINT id) { return mOutputSrvGpuHandle[id]; }
-
-    bool mActive;
+    virtual bool *isActive() override { return &mActive; }
+    virtual const char *getName() override { return "Realtime Ray Tracing Pipeline"; }
 private:
     RealtimeRaytracingPipeline(DXRFramework::RtContext::SharedPtr context);
 
@@ -70,6 +66,7 @@ private:
     std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> mTextureSrvGpuHandles;
 
     // Rendering states
+    bool mActive;
     bool mAnimationPaused;
 
     std::mt19937 mRng;

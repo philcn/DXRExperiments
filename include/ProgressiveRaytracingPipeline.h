@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RaytracingPipeline.h"
 #include "DXRFramework/RtBindings.h"
 #include "DXRFramework/RtContext.h"
 #include "DXRFramework/RtProgram.h"
@@ -10,38 +11,33 @@
 #include <vector>
 #include <random>
 
-class ProgressiveRaytracingPipeline
+class ProgressiveRaytracingPipeline : public RaytracingPipeline
 {
 public:
     using SharedPtr = std::shared_ptr<ProgressiveRaytracingPipeline>;
 
     static SharedPtr create(DXRFramework::RtContext::SharedPtr context) { return SharedPtr(new ProgressiveRaytracingPipeline(context)); }
-    ~ProgressiveRaytracingPipeline();
+    virtual ~ProgressiveRaytracingPipeline();
 
-    void userInterface();
-    void update(float elapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height);
-    void render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height);
+    virtual void userInterface() override;
+    virtual void update(float elAapsedTime, UINT elapsedFrames, UINT prevFrameIndex, UINT frameIndex, UINT width, UINT height) override;
+    virtual void render(ID3D12GraphicsCommandList *commandList, UINT frameIndex, UINT width, UINT height) override;
 
-    void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount);
-    void createOutputResource(DXGI_FORMAT format, UINT width, UINT height);
-    void buildAccelerationStructures();
+    virtual void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount) override;
+    virtual void createOutputResource(DXGI_FORMAT format, UINT width, UINT height) override;
+    virtual void buildAccelerationStructures() override;
 
-    struct Material 
-    {
-        MaterialParams params;
-        // textures
-    };
+    virtual void addMaterial(Material material) override { mMaterials.push_back(material); }
+    virtual void setCamera(std::shared_ptr<Math::Camera> camera) override { mCamera = camera; }
+    virtual void setScene(DXRFramework::RtScene::SharedPtr scene) override;
 
-    void addMaterial(Material material) { mMaterials.push_back(material); }
-    void setCamera(std::shared_ptr<Math::Camera> camera) { mCamera = camera; }
-    void setScene(DXRFramework::RtScene::SharedPtr scene);
+    virtual int getNumOutputs() override { return 1; }
+    virtual ID3D12Resource *getOutputResource(UINT id) override { return mOutputResource.Get(); }
+    virtual D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle(UINT id) override { return mOutputUavGpuHandle; }
+    virtual D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle(UINT id) override { return mOutputSrvGpuHandle; }
 
-    int getNumOutputs() { return 1; }
-    ID3D12Resource *getOutputResource(UINT id) { return mOutputResource.Get(); }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle(UINT id) { return mOutputUavGpuHandle; }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputSrvHandle(UINT id) { return mOutputSrvGpuHandle; }
-
-    bool mActive;
+    virtual bool *isActive() override { return &mActive; }
+    virtual const char *getName() override { return "Progressive Ray Tracing Pipeline"; }
 private:
     ProgressiveRaytracingPipeline(DXRFramework::RtContext::SharedPtr context);
 
@@ -69,6 +65,7 @@ private:
     std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> mTextureSrvGpuHandles;
 
     // Rendering states
+    bool mActive;
     UINT mAccumCount;
     bool mFrameAccumulationEnabled;
     bool mAnimationPaused;

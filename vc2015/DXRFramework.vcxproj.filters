@@ -419,6 +419,9 @@
     <ClInclude Include="..\include\DenoiseCompositor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\RaytracingPipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -532,6 +535,9 @@
       <Filter>Libs\MiniEngine\Math</Filter>
     </None>
     <None Include="..\assets\shaders\BilateralFilter.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
+    <None Include="..\assets\shaders\RaytracingCommon.hlsli">
       <Filter>Assets\Shaders</Filter>
     </None>
   </ItemGroup>
