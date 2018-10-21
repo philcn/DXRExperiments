@@ -531,6 +531,9 @@
     <None Include="..\libs\MiniEngine\Math\Functions.inl">
       <Filter>Libs\MiniEngine\Math</Filter>
     </None>
+    <None Include="..\assets\shaders\BilateralFilter.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\assets\shaders\ShaderLibrary.hlsl">

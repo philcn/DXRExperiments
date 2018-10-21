@@ -244,6 +244,8 @@ void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandLis
     mRtContext->getFallbackCommandList()->SetTopLevelAccelerationStructure(GlobalRootSignatureParams::AccelerationStructureSlot, mRtScene->getTlasWrappedPtr());
 
     mRtContext->raytrace(mRtBindings, mRtState, width, height, 3);
+
+    mRtContext->insertUAVBarrier(mOutputResource.Get());
 }
 
 void ProgressiveRaytracingPipeline::userInterface()

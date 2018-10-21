@@ -16,8 +16,8 @@ public:
     void loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount, bool loadMockResources);
     void createOutputResource(DXGI_FORMAT format, UINT width, UINT height);
 
-    ID3D12Resource *getOutputResource() { return mOutputResource.Get(); }
-    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle() { return mOutputUavGpuHandle; }
+    ID3D12Resource *getOutputResource() { return mOutputResource[1].Get(); }
+    D3D12_GPU_DESCRIPTOR_HANDLE getOutputUavHandle() { return mOutputUavGpuHandle[1]; }
 
     bool mActive;
 private:
@@ -29,9 +29,11 @@ private:
     DXRFramework::RtContext::SharedPtr mRtContext;
 
     // Output resource
-    ComPtr<ID3D12Resource> mOutputResource;
-    UINT mOutputUavHeapIndex;
-    D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle;
+    ComPtr<ID3D12Resource> mOutputResource[2];
+    UINT mOutputUavHeapIndex[2] = { UINT_MAX, UINT_MAX };
+    UINT mOutputSrvHeapIndex[2] = { UINT_MAX, UINT_MAX };
+    D3D12_GPU_DESCRIPTOR_HANDLE mOutputUavGpuHandle[2];
+    D3D12_GPU_DESCRIPTOR_HANDLE mOutputSrvGpuHandle[2];
 
     struct DenoiserParams
     {
@@ -39,6 +41,7 @@ private:
         float gamma;
         UINT tonemap;
         UINT gammaCorrect;
+        int maxKernelSize;
     };
 
     ConstantBuffer<DenoiserParams> mConstantBuffer;

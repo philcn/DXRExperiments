@@ -21,6 +21,8 @@ DenoiseCompositor::DenoiseCompositor(DXRFramework::RtContext::SharedPtr context)
     rsConfig.AddHeapRangesParameter({ {0 /* t0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0} });
     rsConfig.AddHeapRangesParameter({ {0 /* u0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0} });
     rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /* b0 */, 0, 1);
+    rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 1 /* b1 */, 0, 1);
+
     mComputeRootSignature = rsConfig.Generate(device, false);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
@@ -39,7 +41,8 @@ void DenoiseCompositor::loadResources(ID3D12CommandQueue *uploadCommandQueue, UI
     mConstantBuffer->exposure = 1.0f;
     mConstantBuffer->gamma = 2.2f;
     mConstantBuffer->tonemap = true;
-    mConstantBuffer->gammaCorrect = true;
+    mConstantBuffer->gammaCorrect = false;
+    mConstantBuffer->maxKernelSize = 12;
 
     if (loadMockResources) {
         mTextureResources.resize(1);
@@ -62,16 +65,26 @@ void DenoiseCompositor::createOutputResource(DXGI_FORMAT format, UINT width, UIN
 {
     auto device = mRtContext->getDevice();
 
-    AllocateUAVTexture(device, format, width, height, mOutputResource.ReleaseAndGetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+    for (int i = 0; i < 2; ++i) {
+        AllocateUAVTexture(device, format, width, height, mOutputResource[i].ReleaseAndGetAddressOf(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE descriptorCpuHandle;
-    mOutputUavHeapIndex = mRtContext->allocateDescriptor(&descriptorCpuHandle, mOutputUavHeapIndex);
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE uavCpuHandle;
+            mOutputUavHeapIndex[i] = mRtContext->allocateDescriptor(&uavCpuHandle, mOutputUavHeapIndex[i]);
 
-    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    device->CreateUnorderedAccessView(mOutputResource.Get(), nullptr, &uavDesc, descriptorCpuHandle);
+            D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+            device->CreateUnorderedAccessView(mOutputResource[i].Get(), nullptr, &uavDesc, uavCpuHandle);
 
-    mOutputUavGpuHandle = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex);
+            mOutputUavGpuHandle[i] = mRtContext->getDescriptorGPUHandle(mOutputUavHeapIndex[i]);
+        }
+
+        {
+            D3D12_CPU_DESCRIPTOR_HANDLE srvCpuHandle;
+            mOutputSrvHeapIndex[i] = mRtContext->allocateDescriptor(&srvCpuHandle, mOutputSrvHeapIndex[i]);
+            mOutputSrvGpuHandle[i] = mRtContext->createTextureSRVHandle(mOutputResource[i].Get(), false, mOutputSrvHeapIndex[i]);
+        }
+    }
 }
 
 void DenoiseCompositor::userInterface()
@@ -81,6 +94,7 @@ void DenoiseCompositor::userInterface()
     ui::SliderFloat("Gamma", &mConstantBuffer->gamma, 1.0f, 3.0f);
     ui::Checkbox("Tonemap", (bool*)&mConstantBuffer->tonemap);
     ui::Checkbox("Gamma correct", (bool*)&mConstantBuffer->gammaCorrect);
+    ui::SliderInt("Max Kernel Size", &mConstantBuffer->maxKernelSize, 1, 25);
     ui::End();
 }
 
@@ -96,10 +110,29 @@ void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, D3D12_G
 
     commandList->SetPipelineState(mComputeState.Get());
     commandList->SetComputeRootSignature(mComputeRootSignature.Get());
-    commandList->SetComputeRootDescriptorTable(0, inputSrvHandle);
-    commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle);
     commandList->SetComputeRootConstantBufferView(2, mConstantBuffer.GpuVirtualAddress(frameIndex));
 
-    const UINT TileSize = 8;
-    commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
+    const UINT TileSize = 16;
+
+    // pass 0
+    {
+        commandList->SetComputeRootDescriptorTable(0, inputSrvHandle);
+        commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle[0]);
+        commandList->SetComputeRoot32BitConstant(3, 0, 0);
+        commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
+
+        mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+        mRtContext->insertUAVBarrier(mOutputResource[0].Get());
+    }
+
+    // pass 1
+    {
+        commandList->SetComputeRootDescriptorTable(0, mOutputSrvGpuHandle[0]);
+        commandList->SetComputeRootDescriptorTable(1, mOutputUavGpuHandle[1]);
+        commandList->SetComputeRoot32BitConstant(3, 1, 0);
+        commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
+
+        mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+        mRtContext->insertUAVBarrier(mOutputResource[1].Get());
+    }
 }

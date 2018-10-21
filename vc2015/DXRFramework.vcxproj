@@ -365,7 +365,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
   <ItemGroup>
     <FxCompile Include="..\assets\shaders\Compute.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -394,6 +394,9 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\assets\shaders\BilateralFilter.hlsli">
+      <FileType>Document</FileType>
+    </None>
     <None Include="..\assets\shaders\RaytracingUtils.hlsli" />
     <None Include="..\libs\MiniEngine\Math\Functions.inl" />
   </ItemGroup>

@@ -39,6 +39,7 @@ namespace DXRFramework
         D3D12_GPU_DESCRIPTOR_HANDLE createTextureSRVHandle(ID3D12Resource* resource, bool cubemap = false, UINT descriptorHeapIndex = UINT_MAX);
 
         void transitionResource(ID3D12Resource *resource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState);
+        void insertUAVBarrier(ID3D12Resource *resource);
     private:
         RtContext(ID3D12Device *device, ID3D12GraphicsCommandList *commandList, bool forceComputeFallback);
 

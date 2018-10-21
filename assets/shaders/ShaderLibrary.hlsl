@@ -79,7 +79,7 @@ void RayGen()
     TraceRay(SceneBVH, RAY_FLAG_CULL_BACK_FACING_TRIANGLES, 0xFF, 0, 0, 0, ray, payload);
 
     float4 prevColor = gOutput[launchIndex];
-    float4 curColor = float4(payload.colorAndDistance.rgb, 1.0f);
+    float4 curColor = float4(max(payload.colorAndDistance.rgb, 0.0), 1.0f);
     gOutput[launchIndex] = (perFrameConstants.cameraParams.accumCount * prevColor + curColor) / (perFrameConstants.cameraParams.accumCount + 1);
 }
 

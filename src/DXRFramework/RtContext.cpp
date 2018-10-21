@@ -193,6 +193,12 @@ namespace DXRFramework
         mCommandList->ResourceBarrier(1, &barrier);
     }
 
+    void RtContext::insertUAVBarrier(ID3D12Resource *resource)
+    {
+        D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::UAV(resource);
+        mCommandList->ResourceBarrier(1, &barrier);
+    }
+
     void RtContext::raytrace(RtBindings::SharedPtr bindings, RtState::SharedPtr state, uint32_t width, uint32_t height, uint32_t depth)
     {
         // resourceBarrier(bindings->getShaderTable(), Resource::State::NonPixelShader);

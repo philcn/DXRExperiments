@@ -1,3 +1,5 @@
+#include "BilateralFilter.hlsli"
+
 Texture2D<float4> gInput : register(t0);
 RWTexture2D<float4> gOutput : register(u0);
 
@@ -7,6 +9,12 @@ cbuffer Params : register(b0)
     float gGamma;
     uint gTonemap;
     uint gGammaCorrect;
+    int gMaxKernelSize;
+}
+
+cbuffer PerPassParams : register(b1)
+{
+    int gPass;
 }
 
 float calcLuminance(float3 color)
@@ -26,16 +34,22 @@ float3 linearToSRGB(float3 color)
     return pow(color, 1.0 / gGamma);
 }
 
-[numthreads(8, 8, 1)]
+[numthreads(16, 16, 1)]
 void main(uint3 dispatchID : SV_DispatchThreadID, uint3 threadID : SV_GroupThreadID, uint3 groupID : SV_GroupID)
 {
     float3 color = gInput[dispatchID.xy].rgb;
-    color *= gExposure;
-    if (gTonemap) {
-        color = max(reinhardToneMap(color), 0.0);
+
+    color = filterKernel(gPass, gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gInput).rgb;
+
+    if (gPass == 1) {
+        color *= gExposure;
+        if (gTonemap) {
+            color = max(reinhardToneMap(color), 0.0);
+        }
+        if (gGammaCorrect) {
+            color = saturate(linearToSRGB(color));
+        }
     }
-    if (gGammaCorrect) {
-        color = saturate(linearToSRGB(color));
-    }
+
     gOutput[dispatchID.xy] = float4(color, 1.0);
 }

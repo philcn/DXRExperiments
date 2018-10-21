@@ -170,6 +170,7 @@ void DXRFrameworkApp::OnRender()
         if (mDenoiser->mActive) {
             mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
             mDenoiser->dispatch(commandList, mRaytracingPipeline->getOutputSrvHandle(), currentFrame, GetWidth(), GetHeight());
+
             mRtContext->transitionResource(outputResource, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
             BlitToBackbuffer(mDenoiser->getOutputResource());
         } else {
