@@ -84,29 +84,20 @@ void DXRFrameworkApp::InitRaytracing()
         auto identity = DirectX::XMMatrixIdentity();
 
         // working directory is "vc2015"
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\ground.fbx"), identity);
-        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\2_susannes.fbx"), identity);
+        mRtScene->addModel(RtModel::create(mRtContext, "..\\assets\\models\\pica\\Machines.fbx"), identity);
     }
     mRaytracingPipeline->setScene(mRtScene);
 
     // Configure raytracing pipeline
     {
         ProgressiveRaytracingPipeline::Material material1 = {};
-        material1.params.albedo = XMFLOAT4(1.0f, 0.55f, 0.85f, 1.0f);
-        material1.params.specular = XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f);
-        material1.params.roughness = 0.05f;
-        material1.params.reflectivity = 0.75f;
+        material1.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
+        material1.params.specular = XMFLOAT4(0.58f, 0.58f, 0.58f, 1.0f);
+        material1.params.roughness = 0.08f;
+        material1.params.reflectivity = 1.0f;
         material1.params.type = 1;
 
-        ProgressiveRaytracingPipeline::Material material2 = {};
-        material2.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
-        material2.params.specular = XMFLOAT4(0.18f, 0.18f, 0.18f, 1.0f);
-        material2.params.roughness = 0.005f;
-        material2.params.reflectivity = 1.0f;
-        material2.params.type = 1;
-
         mRaytracingPipeline->addMaterial(material1);
-        mRaytracingPipeline->addMaterial(material2);
     }
     mRaytracingPipeline->setCamera(mCamera);
     mRaytracingPipeline->loadResources(m_deviceResources->GetCommandQueue(), FrameCount);
@@ -121,6 +112,8 @@ void DXRFrameworkApp::InitRaytracing()
     }
 
     mDenoiser = DenoiseCompositor::create(mRtContext);
+    mDenoiser->loadResources(m_deviceResources->GetCommandQueue(), FrameCount, mBypassRaytracing);
+    mDenoiser->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
 void DXRFrameworkApp::OnUpdate()

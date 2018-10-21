@@ -26,8 +26,8 @@ CameraController::CameraController( Camera& camera, Vector3 worldUp ) : m_Target
 
     m_HorizontalLookSensitivity = 2.0f;
     m_VerticalLookSensitivity = 2.0f;
-    m_MoveSpeed = 2.0f;
-    m_StrafeSpeed = 2.0f;
+    m_MoveSpeed = 10.0f;
+    m_StrafeSpeed = 10.0f;
     m_MouseSensitivityX = 0.6f;
     m_MouseSensitivityY = 0.6f;
 
