@@ -1,7 +1,7 @@
 #pragma once
 #include "RtContext.h"
 #include "RtProgram.h"
-#include "nv_helpers_dx12/RaytracingPipelineGenerator.h"
+#include "Helpers/RaytracingPipelineGenerator.h"
 
 namespace DXRFramework
 {

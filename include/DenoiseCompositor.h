@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DXRFramework/RtContext.h"
+#include "RtContext.h"
 
 class DenoiseCompositor
 {

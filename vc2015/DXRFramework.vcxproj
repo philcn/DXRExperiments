@@ -62,7 +62,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\D3D12RaytracingFallback\Include;$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)include\nv_helpers_dx12;$(SolutionDir)include\DXRFramework;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\MiniEngine;$(SolutionDir)..\DirectXTK12\Inc;$(SolutionDir)libs\imgui;$(SolutionDir)libs\imgui\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir);$(SolutionDir)..\D3D12RaytracingFallback\Include;$(SolutionDir)..\DirectXTK12\Inc;$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)libs\DXRFramework;$(SolutionDir)libs\MiniEngine;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -130,20 +130,6 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\dxcapi.h" />
     <ClInclude Include="..\include\dxcapi.use.h" />
     <ClInclude Include="..\include\DXRFrameworkApp.h" />
-    <ClInclude Include="..\include\DXRFramework\RtBindings.h" />
-    <ClInclude Include="..\include\DXRFramework\RtContext.h" />
-    <ClInclude Include="..\include\DXRFramework\RtModel.h" />
-    <ClInclude Include="..\include\DXRFramework\RtParams.h" />
-    <ClInclude Include="..\include\DXRFramework\RtProgram.h" />
-    <ClInclude Include="..\include\DXRFramework\RtScene.h" />
-    <ClInclude Include="..\include\DXRFramework\RtShader.h" />
-    <ClInclude Include="..\include\DXRFramework\RtState.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\BottomLevelASGenerator.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\DXRHelper.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\RaytracingPipelineGenerator.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\RootSignatureGenerator.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\ShaderBindingTableGenerator.h" />
-    <ClInclude Include="..\include\nv_helpers_dx12\TopLevelASGenerator.h" />
     <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h" />
     <ClInclude Include="..\include\RaytracingPipeline.h" />
     <ClInclude Include="..\include\RealtimeRaytracingPipeline.h" />
@@ -226,6 +212,49 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\libs\assimp\include\assimp\version.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\Vertex.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\XMLTools.h" />
+    <ClCompile Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\ShaderBindingTableGenerator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\TopLevelASGenerator.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </PrecompiledHeaderOutputFile>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtBindings.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtContext.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtModel.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtParams.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtProgram.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtScene.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtShader.cpp" />
+    <ClCompile Include="..\libs\DXRFramework\RtState.cpp" />
     <ClCompile Include="..\libs\imgui\imgui.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -260,7 +289,21 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\src\DenoiseCompositor.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtParams.cpp" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRFallbackLayerUtils.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRHelper.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\ShaderBindingTableGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\TopLevelASGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtBindings.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtContext.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtModel.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtParams.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtProgram.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtScene.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtShader.h" />
+    <ClInclude Include="..\libs\DXRFramework\RtState.h" />
     <ClInclude Include="..\libs\imgui\imconfig.h" />
     <ClInclude Include="..\libs\imgui\imgui.h" />
     <ClInclude Include="..\libs\imgui\imgui_impl_dx12.h" />
@@ -284,74 +327,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtBindings.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtContext.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtModel.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtProgram.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtScene.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtShader.cpp" />
-    <ClCompile Include="..\src\DXRFramework\RtState.cpp" />
     <ClCompile Include="..\src\Main.cpp" />
-    <ClCompile Include="..\src\nv_helpers_dx12\BottomLevelASGenerator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\RootSignatureGenerator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\TopLevelASGenerator.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </PrecompiledHeaderOutputFile>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderFile>
-      <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-      </PrecompiledHeaderOutputFile>
-    </ClCompile>
     <ClCompile Include="..\src\ProgressiveRaytracingPipeline.cpp" />
     <ClCompile Include="..\src\RealtimeRaytracingPipeline.cpp" />
     <ClCompile Include="..\src\stdafx.cpp">

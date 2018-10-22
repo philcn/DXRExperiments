@@ -2,7 +2,7 @@
 #include "DenoiseCompositor.h"
 #include "CompiledShaders/DenoiseCompositorH.hlsl.h"
 #include "CompiledShaders/DenoiseCompositorV.hlsl.h"
-#include "nv_helpers_dx12/RootSignatureGenerator.h"
+#include "Helpers/RootSignatureGenerator.h"
 #include "DXSampleHelper.h"
 #include "DirectXRaytracingHelper.h"
 #include "WICTextureLoader.h"

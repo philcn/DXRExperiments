@@ -1,6 +1,6 @@
 #pragma once
 #include "RtContext.h"
-#include "nv_helpers_dx12/RootSignatureGenerator.h"
+#include "Helpers/RootSignatureGenerator.h"
 
 namespace DXRFramework
 {

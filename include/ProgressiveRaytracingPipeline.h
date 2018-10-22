@@ -1,11 +1,11 @@
 #pragma once
 
 #include "RaytracingPipeline.h"
-#include "DXRFramework/RtBindings.h"
-#include "DXRFramework/RtContext.h"
-#include "DXRFramework/RtProgram.h"
-#include "DXRFramework/RtScene.h"
-#include "DXRFramework/RtState.h"
+#include "RtBindings.h"
+#include "RtContext.h"
+#include "RtProgram.h"
+#include "RtScene.h"
+#include "RtState.h"
 #include "RaytracingHlslCompat.h"
 #include "Camera.h"
 #include <vector>

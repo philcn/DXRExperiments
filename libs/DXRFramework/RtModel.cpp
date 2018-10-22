@@ -2,8 +2,8 @@
 #include "RtModel.h"
 #include "RaytracingHlslCompat.h" // for Vertex
 #include "DirectXRaytracingHelper.h" // for AllocateUploadBuffer()
-#include "nv_helpers_dx12/DXRHelper.h" // for CreateBuffer()
-#include "nv_helpers_dx12/BottomLevelASGenerator.h"
+#include "Helpers/DXRHelper.h" // for CreateBuffer()
+#include "Helpers/BottomLevelASGenerator.h"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"

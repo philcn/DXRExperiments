@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "RtBindings.h"
-#include "nv_helpers_dx12/DXRHelper.h"
+#include "Helpers/DXRHelper.h"
 #include "RaytracingHlslCompat.h"
 #include <codecvt>
 

@@ -21,18 +21,6 @@
     <Filter Include="Assets\Shaders">
       <UniqueIdentifier>{644a96a5-f151-4e47-bc59-aa8eaab1d7b2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\NvHelpers">
-      <UniqueIdentifier>{66d45583-1d36-4c73-bd90-8665470cac59}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\NvHelpers">
-      <UniqueIdentifier>{6ed4ddb1-5c6a-4927-ba1d-d1c5ac437543}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\DXRFramework">
-      <UniqueIdentifier>{754ba581-32d0-4871-b990-5b1016d690fb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\DXRFramework">
-      <UniqueIdentifier>{9edf35b1-58d0-4596-a9ee-49662ea00d2f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Libs">
       <UniqueIdentifier>{49bdbec1-7c90-4388-8f8f-9c3e0e070603}</UniqueIdentifier>
     </Filter>
@@ -53,6 +41,12 @@
     </Filter>
     <Filter Include="Libs\imgui">
       <UniqueIdentifier>{19d01af3-e45e-4c3f-8e41-b4bf7db5a15f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs\DXRFramework">
+      <UniqueIdentifier>{ff9c12f7-02d9-4220-9128-50239b590fde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libs\DXRFramework\Helpers">
+      <UniqueIdentifier>{b5d8250b-dc5f-4ec9-b78e-8eeaca3e39d7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -83,50 +77,11 @@
     <ClInclude Include="..\include\stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\ShaderBindingTableGenerator.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\TopLevelASGenerator.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\BottomLevelASGenerator.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\RaytracingPipelineGenerator.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\RootSignatureGenerator.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\dxcapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\dxcapi.use.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\nv_helpers_dx12\DXRHelper.h">
-      <Filter>Header Files\NvHelpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtScene.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtState.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtBindings.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtContext.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtModel.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtProgram.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtShader.h">
-      <Filter>Header Files\DXRFramework</Filter>
     </ClInclude>
     <ClInclude Include="..\include\DXRFrameworkApp.h">
       <Filter>Header Files</Filter>
@@ -344,9 +299,6 @@
     <ClInclude Include="..\libs\assimp\include\assimp\anim.h">
       <Filter>Libs\assimp\include\assimp</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\DXRFramework\RtParams.h">
-      <Filter>Header Files\DXRFramework</Filter>
-    </ClInclude>
     <ClInclude Include="..\libs\MiniEngine\Camera.h">
       <Filter>Libs\MiniEngine</Filter>
     </ClInclude>
@@ -422,6 +374,51 @@
     <ClInclude Include="..\include\RaytracingPipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtBindings.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtContext.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtModel.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtParams.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtProgram.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtScene.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtShader.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtState.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\ShaderBindingTableGenerator.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\TopLevelASGenerator.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRFallbackLayerUtils.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRHelper.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -439,47 +436,8 @@
     <ClCompile Include="..\src\stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\ShaderBindingTableGenerator.cpp">
-      <Filter>Source Files\NvHelpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\TopLevelASGenerator.cpp">
-      <Filter>Source Files\NvHelpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\BottomLevelASGenerator.cpp">
-      <Filter>Source Files\NvHelpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\RaytracingPipelineGenerator.cpp">
-      <Filter>Source Files\NvHelpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\nv_helpers_dx12\RootSignatureGenerator.cpp">
-      <Filter>Source Files\NvHelpers</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtProgram.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtScene.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtState.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtBindings.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtContext.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtModel.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtShader.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\DXRFramework\RtParams.cpp">
-      <Filter>Source Files\DXRFramework</Filter>
     </ClCompile>
     <ClCompile Include="..\libs\MiniEngine\Camera.cpp">
       <Filter>Libs\MiniEngine</Filter>
@@ -525,6 +483,45 @@
     </ClCompile>
     <ClCompile Include="..\src\DenoiseCompositor.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtBindings.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtContext.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtModel.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtParams.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtProgram.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtScene.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtShader.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\RtState.cpp">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.cpp">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\ShaderBindingTableGenerator.cpp">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\TopLevelASGenerator.cpp">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.cpp">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.cpp">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

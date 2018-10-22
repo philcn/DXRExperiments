@@ -5,7 +5,7 @@
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
 #include "DirectXRaytracingHelper.h"
-#include "nv_helpers_dx12/DXRHelper.h"
+#include "Helpers/DXRHelper.h"
 #include "ImGuiRendererDX.h"
 #include <chrono>
 

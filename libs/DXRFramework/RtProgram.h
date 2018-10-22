@@ -2,7 +2,7 @@
 #include "RtContext.h"
 #include "RtShader.h"
 #include "dxcapi.h"
-#include "nv_helpers_dx12/RootSignatureGenerator.h"
+#include "Helpers/RootSignatureGenerator.h"
 #include <vector>
 #include <functional>
 

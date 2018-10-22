@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "RtScene.h"
-#include "nv_helpers_dx12/DXRHelper.h" // for CreateBuffer()
-#include "nv_helpers_dx12/TopLevelASGenerator.h"
+#include "Helpers/DXRHelper.h" // for CreateBuffer()
+#include "Helpers/TopLevelASGenerator.h"
 
 namespace DXRFramework
 {

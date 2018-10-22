@@ -1,7 +1,7 @@
 #pragma once
 
-#include "DXRFramework/RtContext.h"
-#include "DXRFramework/RtScene.h"
+#include "RtContext.h"
+#include "RtScene.h"
 #include "RaytracingHlslCompat.h"
 #include "Camera.h"
 

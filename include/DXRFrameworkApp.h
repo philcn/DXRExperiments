@@ -1,8 +1,8 @@
 #pragma once
 
 #include "DXSample.h"
-#include "DXRFramework/RtContext.h"
-#include "DXRFramework/RtScene.h"
+#include "RtContext.h"
+#include "RtScene.h"
 #include "RaytracingPipeline.h"
 #include "DenoiseCompositor.h"
 #include "Camera.h"
