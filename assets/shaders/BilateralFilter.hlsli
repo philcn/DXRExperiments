@@ -52,7 +52,7 @@ void fillSharedMemory(Texture2D inputTex, Texture2D jointTex, uint2 threadID, ui
     uint tid = flattenIndex(threadID.xy);
 
     sInputSamples[MAX_EXTENT + tid] = inputTex[dispatchID.xy];
-    sJointSamples[MAX_EXTENT + tid] = jointTex[dispatchID.xy];        uint readOffset = tid < GROUP_WIDTH / 2 ? (-GROUP_WIDTH / 2) : (GROUP_WIDTH / 2);    uint writeOffset = readOffset + MAX_EXTENT;    sInputSamples[clamp(tid + writeOffset, 0, CACHE_SIZE)] = inputTex[dispatchID.xy + readOffset * kDirection];    sJointSamples[clamp(tid + writeOffset, 0, CACHE_SIZE)] = jointTex[dispatchID.xy + readOffset * kDirection];}
+    sJointSamples[MAX_EXTENT + tid] = jointTex[dispatchID.xy];    uint readOffset = tid < GROUP_WIDTH / 2 ? (-GROUP_WIDTH / 2) : (GROUP_WIDTH / 2);    uint writeOffset = readOffset + MAX_EXTENT;    sInputSamples[clamp(tid + writeOffset, 0, CACHE_SIZE)] = inputTex[dispatchID.xy + readOffset * kDirection];    sJointSamples[clamp(tid + writeOffset, 0, CACHE_SIZE)] = jointTex[dispatchID.xy + readOffset * kDirection];}
 
 float4 cachedTextureFetch(uint2 threadID, int2 offset)
 {
