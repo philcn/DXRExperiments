@@ -68,7 +68,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)libs\assimp\lib\x64\assimp-vc140-mt.lib;$(SolutionDir)..\DirectXTK12\Bin\Desktop_2017_Win10\x64\Debug\DirectXTK12.lib;WindowsApp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;WindowsApp.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;$(SolutionDir)..\DirectXTK12\Bin\Desktop_2017_Win10\x64\Debug\DirectXTK12.lib;$(SolutionDir)libs\assimp\lib\x64\assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>d3d12.dll</DelayLoadDLLs>
     </Link>
     <CustomBuild>
