@@ -11,7 +11,7 @@
 
 #pragma once
 
-#include "DXSampleHelper.h"
+#include "Helpers/DirectXHelper.h"
 #include "Win32Application.h"
 #include "DeviceResources.h"
 #include "StepTimer.h"

@@ -4,7 +4,6 @@
 #include "CompiledShaders/DenoiseCompositorV.hlsl.h"
 #include "Helpers/RootSignatureGenerator.h"
 #include "Helpers/DirectXRaytracingHelper.h"
-#include "DXSampleHelper.h"
 #include "WICTextureLoader.h"
 #include "ResourceUploadBatch.h"
 #include "Math/Common.h"

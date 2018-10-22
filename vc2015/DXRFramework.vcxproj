@@ -135,7 +135,6 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\include\utils\DeviceResources.h" />
     <ClInclude Include="..\include\utils\ImGuiRendererDX.h" />
     <ClInclude Include="..\include\utils\DXSample.h" />
-    <ClInclude Include="..\include\utils\DXSampleHelper.h" />
     <ClInclude Include="..\include\utils\StepTimer.h" />
     <ClInclude Include="..\include\utils\Win32Application.h" />
     <ClInclude Include="..\libs\assimp\include\assimp\ai_assert.h" />
@@ -335,6 +334,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     </ClCompile>
     <ClCompile Include="..\src\DenoiseCompositor.cpp" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXHelper.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXRaytracingHelper.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.h" />

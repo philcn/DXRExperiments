@@ -14,5 +14,4 @@
 
 #include "D3D12RaytracingFallback.h"
 
-// External
-#include "DXSampleHelper.h"
+#include "Helpers/DirectXHelper.h"

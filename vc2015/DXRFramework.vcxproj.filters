@@ -50,9 +50,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\utils\DXSampleHelper.h">
-      <Filter>Header Files\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\utils\StepTimer.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
@@ -408,6 +405,9 @@
       <Filter>Libs\DXRFramework</Filter>
     </ClInclude>
     <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXRaytracingHelper.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXHelper.h">
       <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClInclude>
   </ItemGroup>

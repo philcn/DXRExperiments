@@ -11,7 +11,6 @@
 
 #include "stdafx.h"
 #include "Win32Application.h"
-#include "DXSampleHelper.h"
 
 HWND Win32Application::m_hwnd = nullptr;
 bool Win32Application::m_fullscreenMode = false;

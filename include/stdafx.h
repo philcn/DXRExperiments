@@ -34,5 +34,5 @@
 #include <dxgidebug.h>
 #endif
 
-#include "DXSampleHelper.h"
+#include "Helpers/DirectXHelper.h"
 #include "DeviceResources.h"
