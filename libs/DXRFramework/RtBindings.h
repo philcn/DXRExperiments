@@ -1,4 +1,6 @@
 #pragma once
+
+#include "RtPrefix.h"
 #include "RtContext.h"
 #include "RtProgram.h"
 #include "RtParams.h"

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtBindings.h"
 #include "Helpers/DXRHelper.h"
 #include "RaytracingHlslCompat.h"

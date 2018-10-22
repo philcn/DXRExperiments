@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RtPrefix.h"
+
 namespace DXRFramework
 {
     class RtBindings;

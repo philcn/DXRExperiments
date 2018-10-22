@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtProgram.h"
 
 extern bool gVertexBufferUseRootTableInsteadOfRootView;

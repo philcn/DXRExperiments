@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtScene.h"
 #include "Helpers/DXRHelper.h" // for CreateBuffer()
 #include "Helpers/TopLevelASGenerator.h"

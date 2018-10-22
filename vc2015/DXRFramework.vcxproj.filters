@@ -419,6 +419,9 @@
     <ClInclude Include="..\libs\DXRFramework\Helpers\DXRHelper.h">
       <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\RtPrefix.h">
+      <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">

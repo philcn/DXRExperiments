@@ -1,4 +1,6 @@
 #pragma once
+
+#include "RtPrefix.h"
 #include "RtContext.h"
 #include "Helpers/RootSignatureGenerator.h"
 

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtModel.h"
 #include "RaytracingHlslCompat.h" // for Vertex
 #include "DirectXRaytracingHelper.h" // for AllocateUploadBuffer()

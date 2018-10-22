@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtShader.h"
 #include "DirectXRaytracingHelper.h"
 #include "RaytracingHlslCompat.h"

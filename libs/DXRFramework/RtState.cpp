@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtState.h"
 #include <codecvt>
 

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "RtContext.h"
 #include "RtBindings.h"
 #include "RtState.h"

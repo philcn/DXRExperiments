@@ -1,4 +1,6 @@
 #pragma once
+
+#include "RtPrefix.h"
 #include "RtShader.h"
 #include "RtProgram.h"
 #include "D3D12RaytracingFallback.h"
