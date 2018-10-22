@@ -30,7 +30,7 @@ private:
     DenoiseCompositor(DXRFramework::RtContext::SharedPtr context);
 
     ComPtr<ID3D12RootSignature> mComputeRootSignature;
-    ComPtr<ID3D12PipelineState> mComputeState;
+    ComPtr<ID3D12PipelineState> mComputeState[2];
 
     DXRFramework::RtContext::SharedPtr mRtContext;
 

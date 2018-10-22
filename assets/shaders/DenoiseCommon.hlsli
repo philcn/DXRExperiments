@@ -1,4 +1,16 @@
+#ifndef DENOISE_COMMON_HLSLI
+#define DENOISE_COMMON_HLSLI
+
+#define GROUP_WIDTH 64
 #include "BilateralFilter.hlsli"
+
+#if PASS == 0
+#define GROUP_SIZE_X GROUP_WIDTH
+#define GROUP_SIZE_Y 1
+#else
+#define GROUP_SIZE_X 1
+#define GROUP_SIZE_Y GROUP_WIDTH
+#endif
 
 Texture2D<float4> gDirectLighting : register(t0);
 Texture2D<float4> gInput : register(t1);
@@ -12,11 +24,6 @@ cbuffer Params : register(b0)
     uint gGammaCorrect;
     int gMaxKernelSize;
     uint gDebugVisualize;
-}
-
-cbuffer PerPassParams : register(b1)
-{
-    int gPass;
 }
 
 float calcLuminance(float3 color)
@@ -36,35 +43,37 @@ float3 linearToSRGB(float3 color)
     return pow(color, 1.0 / gGamma);
 }
 
-[numthreads(16, 16, 1)]
+[numthreads(GROUP_SIZE_X, GROUP_SIZE_Y, 1)]
 void main(uint3 dispatchID : SV_DispatchThreadID, uint3 threadID : SV_GroupThreadID, uint3 groupID : SV_GroupID)
 {
     float3 color;
     if (gDebugVisualize == 2) {
         color = gInput[dispatchID.xy].rgb;
     } else {
-        color = filterKernel(gPass, gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gDirectLighting).rgb;
+        color = filterKernel(gMaxKernelSize, float(gMaxKernelSize), dispatchID.xy, gInput, gDirectLighting, threadID.xy, dispatchID.xy).rgb;
     }
 
-    if (gPass == 1) {
-        if (gDebugVisualize == 0) {
-            color += gDirectLighting[dispatchID.xy].rgb;
-        } else if (gDebugVisualize == 1) {
-            // no-op
-        } else if (gDebugVisualize == 2) {
-            // no-op
-        } else if (gDebugVisualize == 3) {
-            color = gDirectLighting[dispatchID.xy].rgb;
-        }
-
-        color *= gExposure;
-        if (gTonemap) {
-            color = max(reinhardToneMap(color), 0.0);
-        }
-        if (gGammaCorrect) {
-            color = saturate(linearToSRGB(color));
-        }
+#if PASS == 1
+    if (gDebugVisualize == 0) {
+        color += gDirectLighting[dispatchID.xy].rgb;
+    } else if (gDebugVisualize == 1) {
+        // no-op
+    } else if (gDebugVisualize == 2) {
+        // no-op
+    } else if (gDebugVisualize == 3) {
+        color = gDirectLighting[dispatchID.xy].rgb;
     }
+
+    color *= gExposure;
+    if (gTonemap) {
+        color = max(reinhardToneMap(color), 0.0);
+    }
+    if (gGammaCorrect) {
+        color = saturate(linearToSRGB(color));
+    }
+#endif
 
     gOutput[dispatchID.xy] = float4(color, 1.0);
 }
+
+#endif // DENOISE_COMMON_HLSLI

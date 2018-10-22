@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "DenoiseCompositor.h"
-#include "CompiledShaders/DenoiseCompositor.hlsl.h"
+#include "CompiledShaders/DenoiseCompositorH.hlsl.h"
+#include "CompiledShaders/DenoiseCompositorV.hlsl.h"
 #include "nv_helpers_dx12/RootSignatureGenerator.h"
 #include "DXSampleHelper.h"
 #include "DirectXRaytracingHelper.h"
@@ -22,16 +23,19 @@ DenoiseCompositor::DenoiseCompositor(DXRFramework::RtContext::SharedPtr context)
     rsConfig.AddHeapRangesParameter({ {1 /* t1 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 0} });
     rsConfig.AddHeapRangesParameter({ {0 /* u0 */, 1, 0, D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 0} });
     rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_CBV, 0 /* b0 */, 0, 1);
-    rsConfig.AddRootParameter(D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS, 1 /* b1 */, 0, 1);
 
     mComputeRootSignature = rsConfig.Generate(device, false);
 
     D3D12_COMPUTE_PIPELINE_STATE_DESC computePsoDesc = {};
     computePsoDesc.pRootSignature = mComputeRootSignature.Get();
-    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pDenoiseCompositor, ARRAYSIZE(g_pDenoiseCompositor));
+    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pDenoiseCompositorH, ARRAYSIZE(g_pDenoiseCompositorH));
 
-    ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mComputeState)));
-    NAME_D3D12_OBJECT(mComputeState);
+    ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mComputeState[0])));
+    NAME_D3D12_OBJECT(mComputeState[0]);
+
+    computePsoDesc.CS = CD3DX12_SHADER_BYTECODE(g_pDenoiseCompositorV, ARRAYSIZE(g_pDenoiseCompositorV));
+    ThrowIfFailed(device->CreateComputePipelineState(&computePsoDesc, IID_PPV_ARGS(&mComputeState[1])));
+    NAME_D3D12_OBJECT(mComputeState[1]);
 }
 
 void DenoiseCompositor::loadResources(ID3D12CommandQueue *uploadCommandQueue, UINT frameCount, bool loadMockResources)
@@ -114,19 +118,18 @@ void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, Denoise
 
     mRtContext->bindDescriptorHeap();
 
-    commandList->SetPipelineState(mComputeState.Get());
     commandList->SetComputeRootSignature(mComputeRootSignature.Get());
     commandList->SetComputeRootConstantBufferView(3, mConstantBuffer.GpuVirtualAddress(frameIndex));
 
-    const UINT TileSize = 16;
+    const UINT DispatchGroupWidth = 64;
 
     // pass 0
     {
+        commandList->SetPipelineState(mComputeState[0].Get());
         commandList->SetComputeRootDescriptorTable(0, inputs.directLightingSrv);
         commandList->SetComputeRootDescriptorTable(1, inputs.indirectSpecularSrv);
         commandList->SetComputeRootDescriptorTable(2, mOutputUavGpuHandle[0]);
-        commandList->SetComputeRoot32BitConstant(4, 0, 0);
-        commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
+        commandList->Dispatch(Math::DivideByMultiple(width, DispatchGroupWidth), height, 1);
 
         mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         mRtContext->insertUAVBarrier(mOutputResource[0].Get());
@@ -134,11 +137,11 @@ void DenoiseCompositor::dispatch(ID3D12GraphicsCommandList *commandList, Denoise
 
     // pass 1
     {
+        commandList->SetPipelineState(mComputeState[1].Get());
         commandList->SetComputeRootDescriptorTable(0, inputs.directLightingSrv);
         commandList->SetComputeRootDescriptorTable(1, mOutputSrvGpuHandle[0]);
         commandList->SetComputeRootDescriptorTable(2, mOutputUavGpuHandle[1]);
-        commandList->SetComputeRoot32BitConstant(4, 1, 0);
-        commandList->Dispatch(Math::DivideByMultiple(width, TileSize), Math::DivideByMultiple(height, TileSize), 1);
+        commandList->Dispatch(width, Math::DivideByMultiple(height, DispatchGroupWidth), 1);
 
         mRtContext->transitionResource(mOutputResource[0].Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
         mRtContext->insertUAVBarrier(mOutputResource[1].Get());

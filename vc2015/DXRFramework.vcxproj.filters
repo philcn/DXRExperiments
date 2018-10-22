@@ -540,6 +540,9 @@
     <None Include="..\assets\shaders\RaytracingCommon.hlsli">
       <Filter>Assets\Shaders</Filter>
     </None>
+    <None Include="..\assets\shaders\DenoiseCommon.hlsli">
+      <Filter>Assets\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\assets\shaders\RealtimeRaytracing.hlsl">
@@ -548,7 +551,10 @@
     <FxCompile Include="..\assets\shaders\ProgressiveRaytracing.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\assets\shaders\DenoiseCompositor.hlsl">
+    <FxCompile Include="..\assets\shaders\DenoiseCompositorH.hlsl">
+      <Filter>Assets\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\assets\shaders\DenoiseCompositorV.hlsl">
       <Filter>Assets\Shaders</Filter>
     </FxCompile>
   </ItemGroup>
