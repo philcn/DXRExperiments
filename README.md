@@ -2,7 +2,7 @@
 
 A lightweight prototyping framework for DirectX Raytracing build upon Microsoft DXR Fallback Layer.
 
-![Screenshot](./screenshots/Progressive.png?raw=true "Progressive Raytracing")
+![Screenshot](./screenshots/progressive.png?raw=true "Progressive Raytracing")
 
 ## Overview
 
@@ -36,23 +36,24 @@ Clone the Github repo, then initialize the submodules with
 $ git submodule update --init
 ```
 
-Download Microsoft DXR Fallback Compiler binaries with the link in the following section. Copy all the contents to externals/D3D12R/D3D12RaytracingFallback/Bin/x64.
+Download Microsoft DXR Fallback Compiler binaries with the link in the following section. Copy all the contents to `externals/D3D12RaytracingFallback/Bin/x64`.
 
-Open DXRExperiments.sln and build DXRExperiments project.
+Open `DXRExperiments.sln` and build `DXRExperiments` project.
 
 ## Requirements
 
 DXRExperiments is maintained to run on the following environment:
 
-Windows 10 1809 (18252.1000) or higher.
-Visual Studio 2017 version 15.8.6 or higher.
-Windows 10 10.0.17763.0 SDK or higher.
-DXR Fallback Compiler - [DirectXRaytracingBinariesV1.5.zip](https://github.com/Microsoft/DirectX-Graphics-Samples/releases/tag/v1.5-dxr).
-Nvidia Maxwell or Turing GPU.
+* Windows 10 1809 (18252.1000) or higher.
+* Visual Studio 2017 version 15.8.6 or higher.
+* Windows 10 10.0.17763.0 SDK or higher.
+* DXR Fallback Compiler - [DirectXRaytracingBinariesV1.5.zip](https://github.com/Microsoft/DirectX-Graphics-Samples/releases/tag/v1.5-dxr).
+* Nvidia Maxwell or Turing GPU.
 
 ## Reference
 
 https://github.com/Microsoft/DirectX-Graphics-Samples/tree/master/Libraries/D3D12RaytracingFallback
 https://github.com/Microsoft/DirectX-Graphics-Samples/tree/master/Samples/Desktop/D3D12Raytracing
+https://developer.nvidia.com/rtx/raytracing/dxr/DX12-Raytracing-tutorial-Part-1
 https://github.com/NVIDIAGameWorks/Falcor
 http://intro-to-dxr.cwyman.org/
