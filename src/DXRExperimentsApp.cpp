@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "DXRFrameworkApp.h"
+#include "DXRExperimentsApp.h"
 #include "ProgressiveRaytracingPipeline.h"
 #include "RealtimeRaytracingPipeline.h"
 #include "Helpers/DirectXRaytracingHelper.h"
@@ -14,14 +14,14 @@ namespace GameCore
     extern HWND g_hWnd; 
 }
 
-DXRFrameworkApp::DXRFrameworkApp(UINT width, UINT height, std::wstring name) :
+DXRExperimentsApp::DXRExperimentsApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
     mBypassRaytracing(false)
 {
     UpdateForSizeChange(width, height);
 }
 
-void DXRFrameworkApp::OnInit()
+void DXRExperimentsApp::OnInit()
 {
     m_deviceResources = std::make_unique<DX::DeviceResources>(
         DXGI_FORMAT_R16G16B16A16_FLOAT,//DXGI_FORMAT_R8G8B8A8_UNORM
@@ -71,7 +71,7 @@ void DXRFrameworkApp::OnInit()
     }); 
 }
 
-void DXRFrameworkApp::InitRaytracing()
+void DXRExperimentsApp::InitRaytracing()
 {
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
@@ -133,7 +133,7 @@ void DXRFrameworkApp::InitRaytracing()
     mDenoiser->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
-void DXRFrameworkApp::OnUpdate()
+void DXRExperimentsApp::OnUpdate()
 {
     DXSample::OnUpdate();
 
@@ -165,7 +165,7 @@ void DXRFrameworkApp::OnUpdate()
     }
 }
 
-void DXRFrameworkApp::OnRender()
+void DXRExperimentsApp::OnRender()
 {
     if (!m_deviceResources->IsWindowVisible()) return;
 
@@ -224,7 +224,7 @@ void DXRFrameworkApp::OnRender()
     m_deviceResources->Present(D3D12_RESOURCE_STATE_RENDER_TARGET);
 }
 
-void DXRFrameworkApp::OnKeyDown(UINT8 key)
+void DXRExperimentsApp::OnKeyDown(UINT8 key)
 {
     switch (key) {
     case 'F':
@@ -242,7 +242,7 @@ void DXRFrameworkApp::OnKeyDown(UINT8 key)
     mActiveRaytracingPipeline = mRaytracingPipelines[mActivePipelineIndex].get();
 }
 
-void DXRFrameworkApp::OnDestroy()
+void DXRExperimentsApp::OnDestroy()
 {
     m_deviceResources->WaitForGpu();
 
@@ -250,7 +250,7 @@ void DXRFrameworkApp::OnDestroy()
     GameInput::Shutdown();
 }
 
-void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
+void DXRExperimentsApp::OnSizeChanged(UINT width, UINT height, bool minimized)
 {
     if (!m_deviceResources->WindowSizeChanged(width, height, minimized)) {
         return;
@@ -266,7 +266,7 @@ void DXRFrameworkApp::OnSizeChanged(UINT width, UINT height, bool minimized)
     mDenoiser->createOutputResource(m_deviceResources->GetBackBufferFormat(), GetWidth(), GetHeight());
 }
 
-void DXRFrameworkApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState)
+void DXRExperimentsApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RESOURCE_STATES fromState, D3D12_RESOURCE_STATES toState)
 {
     auto commandList= m_deviceResources->GetCommandList();
     auto renderTarget = m_deviceResources->GetRenderTarget();
@@ -280,7 +280,7 @@ void DXRFrameworkApp::BlitToBackbuffer(ID3D12Resource *textureResource, D3D12_RE
     mRtContext->transitionResource(textureResource, D3D12_RESOURCE_STATE_COPY_SOURCE, toState);
 }
 
-LRESULT DXRFrameworkApp::WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT DXRExperimentsApp::WindowProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     return ui::RendererDX::WindowProcHandler(hwnd, msg, wParam, lParam);
 }

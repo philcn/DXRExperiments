@@ -14,7 +14,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{0A3BA23A-F9DA-46B8-8D6B-C4DED0E19340}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>DXRFramework</RootNamespace>
+    <RootNamespace>DXRExperiments</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -127,7 +127,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\assets\shaders\HlslCompat.h" />
     <ClInclude Include="..\assets\shaders\RaytracingHlslCompat.h" />
     <ClInclude Include="..\include\DenoiseCompositor.h" />
-    <ClInclude Include="..\include\DXRFrameworkApp.h" />
+    <ClInclude Include="..\include\DXRExperimentsApp.h" />
     <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h" />
     <ClInclude Include="..\include\RaytracingPipeline.h" />
     <ClInclude Include="..\include\RealtimeRaytracingPipeline.h" />
@@ -375,7 +375,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\libs\MiniEngine\VectorMath.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\DXRFrameworkApp.cpp">
+    <ClCompile Include="..\src\DXRExperimentsApp.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>

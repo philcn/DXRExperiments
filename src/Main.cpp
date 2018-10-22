@@ -10,11 +10,11 @@
 //*********************************************************
 
 #include "pch.h"
-#include "DXRFrameworkApp.h"
+#include "DXRExperimentsApp.h"
 
 _Use_decl_annotations_
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int nCmdShow)
 {
-    DXRFrameworkApp sample(1920, 1080, L"DXR Framework");
+    DXRExperimentsApp sample(1920, 1080, L"DXR Experiments");
     return Win32Application::Run(&sample, hInstance, nCmdShow);
 }

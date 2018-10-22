@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27004.2005
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DXRFramework", "vc2015\DXRFramework.vcxproj", "{0A3BA23A-F9DA-46B8-8D6B-C4DED0E19340}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DXRExperiments", "vc2015\DXRExperiments.vcxproj", "{0A3BA23A-F9DA-46B8-8D6B-C4DED0E19340}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3E0E8608-CD9B-4C76-AF33-29CA38F2C9F0} = {3E0E8608-CD9B-4C76-AF33-29CA38F2C9F0}
 		{4BE280A6-1066-41CA-ACDD-6BB7E532508B} = {4BE280A6-1066-41CA-ACDD-6BB7E532508B}

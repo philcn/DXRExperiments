@@ -1,4 +1,4 @@
-# DXRFramework
+# DXRExperiments
 
 Implemented the Nvidia DXR tutorial with DXR Fallback Layer, tested on Nvidia GTX 980Ti (AMD won't work). Extended helpers in nv_helpers_dx12 to work with both D3D12 prototype device and fallback device.
 

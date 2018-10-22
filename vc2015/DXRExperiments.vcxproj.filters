@@ -68,7 +68,7 @@
     <ClInclude Include="..\assets\shaders\HlslCompat.h">
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\DXRFrameworkApp.h">
+    <ClInclude Include="..\include\DXRExperimentsApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\libs\assimp\include\assimp\BaseImporter.h">
@@ -424,7 +424,7 @@
     <ClCompile Include="..\src\utils\DeviceResources.cpp">
       <Filter>Source Files\Utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\DXRFrameworkApp.cpp">
+    <ClCompile Include="..\src\DXRExperimentsApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\libs\MiniEngine\Camera.cpp">

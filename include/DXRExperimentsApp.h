@@ -8,10 +8,10 @@
 #include "Camera.h"
 #include "CameraController.h"
 
-class DXRFrameworkApp : public DXSample
+class DXRExperimentsApp : public DXSample
 {
 public:
-    DXRFrameworkApp(UINT width, UINT height, std::wstring name);
+    DXRExperimentsApp(UINT width, UINT height, std::wstring name);
 
     // Messages
     virtual void OnInit();
