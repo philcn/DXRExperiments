@@ -1,6 +1,6 @@
 #include "RtScene.h"
-#include "Helpers/DXRHelper.h" // for CreateBuffer()
 #include "Helpers/TopLevelASGenerator.h"
+#include "Helpers/DirectXRaytracingHelper.h"
 
 namespace DXRFramework
 {
@@ -35,18 +35,12 @@ namespace DXRFramework
         tlasGenerator.ComputeASBufferSizes(fallbackDevice, true, &scratchSizeInBytes, &resultSizeInBytes, &instanceDescsSize);
 
         // Allocate on default heap since the build is done on GPU
-        ComPtr<ID3D12Resource> scratch = nv_helpers_dx12::CreateBuffer(
-            device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nv_helpers_dx12::kDefaultHeapProps);
+        ComPtr<ID3D12Resource> scratch = CreateBuffer(device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, kDefaultHeapProps);
 
         D3D12_RESOURCE_STATES initialResourceState = fallbackDevice->GetAccelerationStructureResourceState();
-        mTlasBuffer = nv_helpers_dx12::CreateBuffer(
-            device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-            initialResourceState, nv_helpers_dx12::kDefaultHeapProps);
+        mTlasBuffer = CreateBuffer(device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, initialResourceState, kDefaultHeapProps);
 
-        ComPtr<ID3D12Resource> instanceDesc = nv_helpers_dx12::CreateBuffer(
-            device, instanceDescsSize, D3D12_RESOURCE_FLAG_NONE, 
-            D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps); 
+        ComPtr<ID3D12Resource> instanceDesc = CreateBuffer(device, instanceDescsSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps); 
 
         // Set the descriptor heaps to be used during acceleration structure build for the Fallback Layer.
         context->bindDescriptorHeap();

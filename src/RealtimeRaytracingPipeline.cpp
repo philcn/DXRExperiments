@@ -4,8 +4,7 @@
 #include "WICTextureLoader.h"
 #include "DDSTextureLoader.h"
 #include "ResourceUploadBatch.h"
-#include "DirectXRaytracingHelper.h"
-#include "Helpers/DXRHelper.h"
+#include "Helpers/DirectXRaytracingHelper.h"
 #include "ImGuiRendererDX.h"
 #include <chrono>
 

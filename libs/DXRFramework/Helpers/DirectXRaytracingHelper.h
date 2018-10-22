@@ -13,102 +13,9 @@
 
 #define SizeOfInUint32(obj) ((sizeof(obj) - 1) / sizeof(UINT32) + 1)
 
-struct AccelerationStructureBuffers
-{
-    ComPtr<ID3D12Resource> scratch;
-    ComPtr<ID3D12Resource> accelerationStructure;
-    ComPtr<ID3D12Resource> instanceDesc;    // Used only for top-level AS
-    UINT64                 ResultDataMaxSizeInBytes;
-};
-
-// Shader record = {{Shader ID}, {RootArguments}}
-class ShaderRecord
-{
-public:
-    ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize) :
-        shaderIdentifier(pShaderIdentifier, shaderIdentifierSize)
-    {
-    }
-
-    ShaderRecord(void* pShaderIdentifier, UINT shaderIdentifierSize, void* pLocalRootArguments, UINT localRootArgumentsSize) :
-        shaderIdentifier(pShaderIdentifier, shaderIdentifierSize),
-        localRootArguments(pLocalRootArguments, localRootArgumentsSize)
-    {
-    }
-
-    void CopyTo(void* dest) const
-    {
-        uint8_t* byteDest = static_cast<uint8_t*>(dest);
-        memcpy(byteDest, shaderIdentifier.ptr, shaderIdentifier.size);
-        if (localRootArguments.ptr)
-        {
-            memcpy(byteDest + shaderIdentifier.size, localRootArguments.ptr, localRootArguments.size);
-        }
-    }
-
-    struct PointerWithSize {
-        void *ptr;
-        UINT size;
-
-        PointerWithSize() : ptr(nullptr), size(0) {}
-        PointerWithSize(void* _ptr, UINT _size) : ptr(_ptr), size(_size) {};
-    };
-    PointerWithSize shaderIdentifier;
-    PointerWithSize localRootArguments;
-};
-
-// Shader table = {{ ShaderRecord 1}, {ShaderRecord 2}, ...}
-class ShaderTable : public GpuUploadBuffer
-{
-    uint8_t* m_mappedShaderRecords;
-    UINT m_shaderRecordSize;
-
-    // Debug support
-    std::wstring m_name;
-    std::vector<ShaderRecord> m_shaderRecords;
-
-    ShaderTable() {}
-public:
-    ShaderTable(ID3D12Device* device, UINT numShaderRecords, UINT shaderRecordSize, LPCWSTR resourceName = nullptr) 
-        : m_name(resourceName)
-    {
-        m_shaderRecordSize = Align(shaderRecordSize, D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
-        m_shaderRecords.reserve(numShaderRecords);
-        UINT bufferSize = numShaderRecords * m_shaderRecordSize;
-        Allocate(device, bufferSize, resourceName);
-        m_mappedShaderRecords = MapCpuWriteOnly();
-    }
-    
-    void push_back(const ShaderRecord& shaderRecord)
-    {
-        ThrowIfFalse(m_shaderRecords.size() < m_shaderRecords.capacity());
-        m_shaderRecords.push_back(shaderRecord);
-        shaderRecord.CopyTo(m_mappedShaderRecords);
-        m_mappedShaderRecords += m_shaderRecordSize;
-    }
-
-    UINT GetShaderRecordSize() { return m_shaderRecordSize; }
-
-    // Pretty-print the shader records.
-    void DebugPrint(std::unordered_map<void*, std::wstring> shaderIdToStringMap)
-    {
-        std::wstringstream wstr;
-        wstr << L"|--------------------------------------------------------------------\n";
-        wstr << L"|Shader table - " << m_name.c_str() << L": " 
-             << m_shaderRecordSize << L" | "
-             << m_shaderRecords.size() * m_shaderRecordSize << L" bytes\n";
-
-        for (UINT i = 0; i < m_shaderRecords.size(); i++)
-        {
-            wstr << L"| [" << i << L"]: ";
-            wstr << shaderIdToStringMap[m_shaderRecords[i].shaderIdentifier.ptr] << L", ";
-            wstr << m_shaderRecords[i].shaderIdentifier.size << L" + " << m_shaderRecords[i].localRootArguments.size << L" bytes \n";
-        }
-        wstr << L"|--------------------------------------------------------------------\n";
-        wstr << L"\n";
-        OutputDebugStringW(wstr.str().c_str());
-    }
-};
+#ifndef ROUND_UP
+#define ROUND_UP(v, powerOf2Alignment) (((v) + (powerOf2Alignment)-1) & ~((powerOf2Alignment)-1))
+#endif
 
 inline void AllocateUAVTexture(ID3D12Device* pDevice, DXGI_FORMAT textureFormat, UINT64 textureWidth, UINT64 textureHeight, ID3D12Resource **ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr)
 {
@@ -143,26 +50,6 @@ inline void AllocateUAVBuffer(ID3D12Device* pDevice, UINT64 bufferSize, ID3D12Re
         (*ppResource)->SetName(resourceName);
     }
 }
-
-template<class T, size_t N>
-void DefineExports(T* obj, LPCWSTR(&Exports)[N])
-{
-    for (UINT i = 0; i < N; i++)
-    {
-        obj->DefineExport(Exports[i]);
-    }
-}
-
-template<class T, size_t N, size_t M>
-void DefineExports(T* obj, LPCWSTR(&Exports)[N][M])
-{
-    for (UINT i = 0; i < N; i++)
-        for (UINT j = 0; j < M; j++)
-        {
-            obj->DefineExport(Exports[i][j]);
-        }
-}
-
 
 inline void AllocateUploadBuffer(ID3D12Device* pDevice, void *pData, UINT64 datasize, ID3D12Resource **ppResource, const wchar_t* resourceName = nullptr)
 {
@@ -295,6 +182,51 @@ inline void PrintStateObjectDesc(const D3D12_STATE_OBJECT_DESC* desc)
     }
     wstr << L"\n";
     OutputDebugStringW(wstr.str().c_str());
+}
+
+inline ID3D12Resource* CreateBuffer(ID3D12Device* m_device, uint64_t size,
+    D3D12_RESOURCE_FLAGS flags, D3D12_RESOURCE_STATES initState,
+    const D3D12_HEAP_PROPERTIES& heapProps)
+{
+    D3D12_RESOURCE_DESC bufDesc = {};
+    bufDesc.Alignment = 0;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Flags = flags;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.Height = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.MipLevels = 1;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Width = size;
+
+    ID3D12Resource* pBuffer;
+    ThrowIfFailed(m_device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+        initState, nullptr, IID_PPV_ARGS(&pBuffer)));
+    return pBuffer;
+}
+
+// Specifies a heap used for uploading. This heap type has CPU access optimized
+// for uploading to the GPU.
+static const D3D12_HEAP_PROPERTIES kUploadHeapProps = {
+    D3D12_HEAP_TYPE_UPLOAD, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0};
+
+// Specifies the default heap. This heap type experiences the most bandwidth for
+// the GPU, but cannot provide CPU access.
+static const D3D12_HEAP_PROPERTIES kDefaultHeapProps = {
+    D3D12_HEAP_TYPE_DEFAULT, D3D12_CPU_PAGE_PROPERTY_UNKNOWN, D3D12_MEMORY_POOL_UNKNOWN, 0, 0};
+
+inline ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible)
+{
+    D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+    desc.NumDescriptors = count;
+    desc.Type = type;
+    desc.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+
+    ID3D12DescriptorHeap* pHeap;
+    ThrowIfFailed(device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&pHeap)));
+    return pHeap;
 }
 
 // Enable experimental features required for compute-based raytracing fallback.

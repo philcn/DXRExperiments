@@ -1,5 +1,5 @@
 #include "RtBindings.h"
-#include "Helpers/DXRHelper.h"
+#include "Helpers/DirectXRaytracingHelper.h"
 #include "RaytracingHlslCompat.h"
 #include <codecvt>
 
@@ -65,8 +65,7 @@ namespace DXRFramework
         UINT shaderTableSize = numEntries * mRecordSize;
 
         mShaderTableData.resize(shaderTableSize);
-        mShaderTable = nv_helpers_dx12::CreateBuffer(context->getDevice(), shaderTableSize, D3D12_RESOURCE_FLAG_NONE,
-            D3D12_RESOURCE_STATE_GENERIC_READ, nv_helpers_dx12::kUploadHeapProps);
+        mShaderTable = CreateBuffer(context->getDevice(), shaderTableSize, D3D12_RESOURCE_FLAG_NONE, D3D12_RESOURCE_STATE_GENERIC_READ, kUploadHeapProps);
 
         return true;
     }

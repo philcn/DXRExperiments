@@ -127,15 +127,12 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     <ClInclude Include="..\assets\shaders\HlslCompat.h" />
     <ClInclude Include="..\assets\shaders\RaytracingHlslCompat.h" />
     <ClInclude Include="..\include\DenoiseCompositor.h" />
-    <ClInclude Include="..\include\dxcapi.h" />
-    <ClInclude Include="..\include\dxcapi.use.h" />
     <ClInclude Include="..\include\DXRFrameworkApp.h" />
     <ClInclude Include="..\include\ProgressiveRaytracingPipeline.h" />
     <ClInclude Include="..\include\RaytracingPipeline.h" />
     <ClInclude Include="..\include\RealtimeRaytracingPipeline.h" />
     <ClInclude Include="..\include\stdafx.h" />
     <ClInclude Include="..\include\utils\DeviceResources.h" />
-    <ClInclude Include="..\include\utils\DirectXRaytracingHelper.h" />
     <ClInclude Include="..\include\utils\ImGuiRendererDX.h" />
     <ClInclude Include="..\include\utils\DXSample.h" />
     <ClInclude Include="..\include\utils\DXSampleHelper.h" />
@@ -338,8 +335,7 @@ PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
     </ClCompile>
     <ClCompile Include="..\src\DenoiseCompositor.cpp" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.h" />
-    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRFallbackLayerUtils.h" />
-    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRHelper.h" />
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXRaytracingHelper.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\RootSignatureGenerator.h" />
     <ClInclude Include="..\libs\DXRFramework\Helpers\ShaderBindingTableGenerator.h" />

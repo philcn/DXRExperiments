@@ -41,7 +41,6 @@ compiling in debug mode.
 
 #include "RaytracingPipelineGenerator.h"
 
-#include "dxcapi.use.h"
 #include <unordered_set>
 
 namespace nv_helpers_dx12

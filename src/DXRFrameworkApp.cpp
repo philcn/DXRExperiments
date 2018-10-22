@@ -2,8 +2,7 @@
 #include "DXRFrameworkApp.h"
 #include "ProgressiveRaytracingPipeline.h"
 #include "RealtimeRaytracingPipeline.h"
-#include "Helpers/DXRHelper.h"
-#include "DirectXRaytracingHelper.h"
+#include "Helpers/DirectXRaytracingHelper.h"
 #include "ImGuiRendererDX.h"
 #include "GameInput.h"
 

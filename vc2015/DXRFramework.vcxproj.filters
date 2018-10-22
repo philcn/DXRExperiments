@@ -62,9 +62,6 @@
     <ClInclude Include="..\include\utils\DeviceResources.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\utils\DirectXRaytracingHelper.h">
-      <Filter>Header Files\Utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\utils\DXSample.h">
       <Filter>Header Files\Utils</Filter>
     </ClInclude>
@@ -75,12 +72,6 @@
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
     <ClInclude Include="..\include\stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\dxcapi.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\dxcapi.use.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\include\DXRFrameworkApp.h">
@@ -413,14 +404,11 @@
     <ClInclude Include="..\libs\DXRFramework\Helpers\BottomLevelASGenerator.h">
       <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClInclude>
-    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRFallbackLayerUtils.h">
-      <Filter>Libs\DXRFramework\Helpers</Filter>
-    </ClInclude>
-    <ClInclude Include="..\libs\DXRFramework\Helpers\DXRHelper.h">
-      <Filter>Libs\DXRFramework\Helpers</Filter>
-    </ClInclude>
     <ClInclude Include="..\libs\DXRFramework\RtPrefix.h">
       <Filter>Libs\DXRFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXRaytracingHelper.h">
+      <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

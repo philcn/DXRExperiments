@@ -1,8 +1,7 @@
 #include "RtModel.h"
 #include "RaytracingHlslCompat.h" // for Vertex
-#include "DirectXRaytracingHelper.h" // for AllocateUploadBuffer()
-#include "Helpers/DXRHelper.h" // for CreateBuffer()
 #include "Helpers/BottomLevelASGenerator.h"
+#include "Helpers/DirectXRaytracingHelper.h"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -97,14 +96,10 @@ namespace DXRFramework
         UINT64 resultSizeInBytes = 0;
         blasGenerator.ComputeASBufferSizes(fallbackDevice, false, &scratchSizeInBytes, &resultSizeInBytes);
 
-        ComPtr<ID3D12Resource> scratch = nv_helpers_dx12::CreateBuffer(
-            device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-            D3D12_RESOURCE_STATE_UNORDERED_ACCESS, nv_helpers_dx12::kDefaultHeapProps);
+        ComPtr<ID3D12Resource> scratch = CreateBuffer(device, scratchSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, kDefaultHeapProps);
 
         D3D12_RESOURCE_STATES initialResourceState = fallbackDevice->GetAccelerationStructureResourceState();
-        mBlasBuffer = nv_helpers_dx12::CreateBuffer(
-            device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, 
-            initialResourceState, nv_helpers_dx12::kDefaultHeapProps);
+        mBlasBuffer = CreateBuffer(device, resultSizeInBytes, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS, initialResourceState, kDefaultHeapProps);
 
         blasGenerator.Generate(commandList, fallbackCommandList, scratch.Get(), mBlasBuffer.Get());
 
