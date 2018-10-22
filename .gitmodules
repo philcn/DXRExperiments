@@ -1,3 +1,6 @@
 [submodule "externals/DirectXTK12"]
 	path = externals/DirectXTK12
 	url = https://github.com/Microsoft/DirectXTK12.git
+[submodule "externals/D3D12RaytracingFallback"]
+	path = externals/D3D12RaytracingFallback
+	url = https://github.com/philcn/D3D12RaytracingFallback.git

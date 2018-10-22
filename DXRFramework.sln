@@ -9,7 +9,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DXRFramework", "vc2015\DXRF
 		{4BE280A6-1066-41CA-ACDD-6BB7E532508B} = {4BE280A6-1066-41CA-ACDD-6BB7E532508B}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FallbackLayer", "..\D3D12RaytracingFallback\src\FallbackLayer.vcxproj", "{4BE280A6-1066-41CA-ACDD-6BB7E532508B}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FallbackLayer", ".\externals\D3D12RaytracingFallback\src\FallbackLayer.vcxproj", "{4BE280A6-1066-41CA-ACDD-6BB7E532508B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DirectXTK12", ".\externals\DirectXTK12\DirectXTK_Desktop_2017_Win10.vcxproj", "{3E0E8608-CD9B-4C76-AF33-29CA38F2C9F0}"
 EndProject

@@ -62,7 +62,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);$(SolutionDir)..\D3D12RaytracingFallback\Include;$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)libs\DXRFramework;$(SolutionDir)libs\MiniEngine;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\imgui;$(SolutionDir)externals\DirectXTK12\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir);$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)libs\DXRFramework;$(SolutionDir)libs\MiniEngine;$(SolutionDir)libs\imgui;$(SolutionDir)libs\assimp\include;$(SolutionDir)externals\DirectXTK12\Inc;$(SolutionDir)externals\D3D12RaytracingFallback\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
@@ -77,13 +77,13 @@
       <TreatOutputAsContent>true</TreatOutputAsContent>
     </CustomBuild>
     <PreBuildEvent>
-      <Command>cd "$(SolutionDir)..\D3D12RaytracingFallback\Bin\x64\"
+      <Command>cd "$(SolutionDir)externals\D3D12RaytracingFallback\Bin\x64\"
 PrebuildCheck.bat</Command>
     </PreBuildEvent>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)libs\assimp\bin\x64\assimp-vc140-mt.dll" $(TargetDir) /Y /D
 
-cd "$(SolutionDir)..\D3D12RaytracingFallback\Bin\x64\"
+cd "$(SolutionDir)externals\D3D12RaytracingFallback\Bin\x64\"
 PostbuildCopy.bat "$(SolutionDir)vc2015\build\bin\$(Configuration)\"
 </Command>
       <Message>Sideload required DXR binaries.</Message>
