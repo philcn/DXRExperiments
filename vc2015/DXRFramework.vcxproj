@@ -62,13 +62,13 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(IntDir);$(SolutionDir)..\D3D12RaytracingFallback\Include;$(SolutionDir)..\DirectXTK12\Inc;$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)libs\DXRFramework;$(SolutionDir)libs\MiniEngine;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir);$(SolutionDir)..\D3D12RaytracingFallback\Include;$(SolutionDir)assets\shaders;$(SolutionDir)include;$(SolutionDir)include\utils;$(SolutionDir)libs\DXRFramework;$(SolutionDir)libs\MiniEngine;$(SolutionDir)libs\assimp\include;$(SolutionDir)libs\imgui;$(SolutionDir)externals\DirectXTK12\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;WindowsApp.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;$(SolutionDir)..\DirectXTK12\Bin\Desktop_2017_Win10\x64\Debug\DirectXTK12.lib;$(SolutionDir)libs\assimp\lib\x64\assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d12.lib;dxgi.lib;dxguid.lib;WindowsApp.lib;$(SolutionDir)Build_VS15\$(Platform)\$(Configuration)\Output\fallbacklayer\fallbacklayer.lib;$(SolutionDir)externals\DirectXTK12\Bin\Desktop_2017_Win10\x64\Debug\DirectXTK12.lib;$(SolutionDir)libs\assimp\lib\x64\assimp-vc140-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <DelayLoadDLLs>d3d12.dll</DelayLoadDLLs>
     </Link>
     <CustomBuild>
