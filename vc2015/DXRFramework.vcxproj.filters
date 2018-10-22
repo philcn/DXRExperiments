@@ -68,9 +68,6 @@
     <ClInclude Include="..\assets\shaders\HlslCompat.h">
       <Filter>Assets\Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\DXRFrameworkApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -410,6 +407,9 @@
     <ClInclude Include="..\libs\DXRFramework\Helpers\DirectXHelper.h">
       <Filter>Libs\DXRFramework\Helpers</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\pch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\Main.cpp">
@@ -423,9 +423,6 @@
     </ClCompile>
     <ClCompile Include="..\src\utils\DeviceResources.cpp">
       <Filter>Source Files\Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\stdafx.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\DXRFrameworkApp.cpp">
       <Filter>Source Files</Filter>
@@ -513,6 +510,9 @@
     </ClCompile>
     <ClCompile Include="..\libs\DXRFramework\Helpers\RaytracingPipelineGenerator.cpp">
       <Filter>Libs\DXRFramework\Helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\pch.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "RealtimeRaytracingPipeline.h"
 #include "CompiledShaders/RealtimeRaytracing.hlsl.h"
 #include "WICTextureLoader.h"
@@ -203,8 +203,8 @@ void RealtimeRaytracingPipeline::render(ID3D12GraphicsCommandList *commandList, 
     // Update shader table root arguments
     auto program = mRtBindings->getProgram();
 
-    for (int rayType = 0; rayType < program->getHitProgramCount(); ++rayType) {
-        for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
+    for (UINT rayType = 0; rayType < program->getHitProgramCount(); ++rayType) {
+        for (UINT instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             auto &hitVars = mRtBindings->getHitVars(rayType, instance);
             hitVars->appendHeapRanges(mRtScene->getModel(instance)->getVertexBufferSrvHandle().ptr);
             hitVars->appendHeapRanges(mRtScene->getModel(instance)->getIndexBufferSrvHandle().ptr);
@@ -212,7 +212,7 @@ void RealtimeRaytracingPipeline::render(ID3D12GraphicsCommandList *commandList, 
         }
     }
 
-    for (int rayType = 0; rayType < program->getMissProgramCount(); ++rayType) {
+    for (UINT rayType = 0; rayType < program->getMissProgramCount(); ++rayType) {
         auto &missVars = mRtBindings->getMissVars(rayType);
         missVars->appendHeapRanges(mTextureSrvGpuHandles[0].ptr);
         missVars->appendHeapRanges(mTextureSrvGpuHandles[1].ptr);

@@ -111,9 +111,8 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
 
     float3 diffuseComponent = (directContrib + indirectContrib) / M_PI;
 
-    float fresnel = 0.0;
-
     // Accumulate indirect specular
+    float3 fresnel = 0.0;
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
         if (materialParams.reflectivity > 0.001) {
@@ -125,27 +124,27 @@ float3 shade(float3 position, float3 normal, uint currentDepth)
             float3 reflectionColor = shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth);
             specularComponent += reflectionColor * brdf / pdf;
 
-            // Equivalent to: fresnel = FresnelReflectanceSchlick(-V, H, materialParams.specular);
-            fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular);
+            // Equivalent to: fresnel = FresnelReflectanceSchlick(-V, H, materialParams.specular.rgb);
+            fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular.rgb);
         }
     }
  
     // Debug visualization
     if (currentDepth == 0) {
         if (perFrameConstants.options.showIndirectDiffuseOnly) {
-            return materialParams.albedo * indirectContrib / M_PI;
+            return materialParams.albedo.rgb * indirectContrib / M_PI;
         } else if (perFrameConstants.options.showIndirectSpecularOnly) {
             return materialParams.reflectivity * specularComponent * fresnel;
         } else if (perFrameConstants.options.showFresnelTerm) {
             return fresnel;
         } else if (perFrameConstants.options.showGBufferAlbedoOnly) {
-            return materialParams.albedo;
+            return materialParams.albedo.rgb;
         } else if (perFrameConstants.options.showDirectLightingOnly) {
-            return materialParams.albedo * directContrib / M_PI;
+            return materialParams.albedo.rgb * directContrib / M_PI;
         }
     }
 
-    return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo * diffuseComponent + materialParams.reflectivity * specularComponent * fresnel;
+    return materialParams.emissive.rgb * materialParams.emissive.a + materialParams.albedo.rgb * diffuseComponent + materialParams.reflectivity * specularComponent * fresnel;
 }
 
 [shader("closesthit")] 

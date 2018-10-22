@@ -75,7 +75,7 @@ float3 shadeAOV(float3 position, float3 normal, uint currentDepth, out ShadingAO
     directContrib += evaluatePointLight(position, normal, currentDepth);
 
     // Accumulate indirect specular
-    float fresnel = 0.0;
+    float3 fresnel = 0.0;
     float3 specularComponent = 0.0;
     if (materialParams.type == 1 || materialParams.type == 2) {
         if (materialParams.reflectivity > 0.001) {
@@ -87,19 +87,19 @@ float3 shadeAOV(float3 position, float3 normal, uint currentDepth, out ShadingAO
             float3 reflectionColor = shootSecondaryRay(position, sampleDir, RAY_EPSILON, currentDepth);
             specularComponent += reflectionColor * brdf / pdf;
 
-            // Equivalent to: fresnel = FresnelReflectanceSchlick(-V, H, materialParams.specular);
-            fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular);
+            // Equivalent to: fresnel = FresnelReflectanceSchlick(-V, H, materialParams.specular.rgb);
+            fresnel = FresnelReflectanceSchlick(WorldRayDirection(), normal, materialParams.specular.rgb);
         }
     }
 
     if (currentDepth == 0) {
-        aov.albedo = materialParams.albedo;
+        aov.albedo = materialParams.albedo.rgb;
         aov.roughness = materialParams.roughness;
-        aov.directLighting = materialParams.albedo * directContrib / M_PI;
+        aov.directLighting = materialParams.albedo.rgb * directContrib / M_PI;
         aov.indirectSpecular = materialParams.reflectivity * specularComponent * fresnel;
     }
 
-    return materialParams.albedo * directContrib / M_PI + materialParams.reflectivity * specularComponent * fresnel;
+    return materialParams.albedo.rgb * directContrib / M_PI + materialParams.reflectivity * specularComponent * fresnel;
 }
 
 [shader("closesthit")] 

@@ -20,7 +20,7 @@
 inline void AllocateUAVTexture(ID3D12Device* pDevice, DXGI_FORMAT textureFormat, UINT64 textureWidth, UINT64 textureHeight, ID3D12Resource **ppResource, D3D12_RESOURCE_STATES initialResourceState = D3D12_RESOURCE_STATE_COMMON, const wchar_t* resourceName = nullptr)
 {
     auto uploadHeapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-    auto texDesc = CD3DX12_RESOURCE_DESC::Tex2D(textureFormat, textureWidth, textureHeight, 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+    auto texDesc = CD3DX12_RESOURCE_DESC::Tex2D(textureFormat, textureWidth, static_cast<UINT>(textureHeight), 1, 1, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
     ThrowIfFailed(pDevice->CreateCommittedResource(
         &uploadHeapProperties,
         D3D12_HEAP_FLAG_NONE,

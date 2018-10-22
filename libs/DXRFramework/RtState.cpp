@@ -27,13 +27,13 @@ namespace DXRFramework
         // Load DXIL libraries
         for (auto library : mProgram->getShaderLibraries()) {
             auto &dxilLibrary = library->mLibDesc.DXILLibrary;
-            mPipelineGenerator.AddLibrary(dxilLibrary.pShaderBytecode, dxilLibrary.BytecodeLength, library->mExportedSymbols);
+            mPipelineGenerator.AddLibrary(dxilLibrary.pShaderBytecode, static_cast<UINT>(dxilLibrary.BytecodeLength), library->mExportedSymbols);
         }
         
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
         // Add hit groups
-        for (int i = 0; i < mProgram->getHitProgramCount(); ++i) {
+        for (UINT i = 0; i < mProgram->getHitProgramCount(); ++i) {
             auto &hitGroup = mProgram->getHitProgram(i);
             std::wstring closestHitSymbol = converter.from_bytes(hitGroup.mClosestHit->mEntryPoint);
             std::wstring anyHitSymbol = hitGroup.mAnyHit ? converter.from_bytes(hitGroup.mAnyHit->mEntryPoint) : L"";
@@ -44,7 +44,7 @@ namespace DXRFramework
         }
 
         // Add miss shader local root signature association
-        for (int i = 0; i < mProgram->getMissProgramCount(); ++i) {
+        for (UINT i = 0; i < mProgram->getMissProgramCount(); ++i) {
             auto &missProgram = mProgram->getMissProgram(i);
             std::wstring missProgramName = converter.from_bytes(missProgram->mEntryPoint);
             mPipelineGenerator.AddRootSignatureAssociation(missProgram->mLocalRootSignature.Get(), {missProgramName});

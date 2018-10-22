@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "ProgressiveRaytracingPipeline.h"
 #include "CompiledShaders/ProgressiveRaytracing.hlsl.h"
 #include "WICTextureLoader.h"
@@ -217,8 +217,8 @@ void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandLis
     // Update shader table root arguments
     auto program = mRtBindings->getProgram();
 
-    for (int rayType = 0; rayType < program->getHitProgramCount(); ++rayType) {
-        for (int instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
+    for (UINT rayType = 0; rayType < program->getHitProgramCount(); ++rayType) {
+        for (UINT instance = 0; instance < mRtScene->getNumInstances(); ++instance) {
             auto &hitVars = mRtBindings->getHitVars(rayType, instance);
             hitVars->appendHeapRanges(mRtScene->getModel(instance)->getVertexBufferSrvHandle().ptr);
             hitVars->appendHeapRanges(mRtScene->getModel(instance)->getIndexBufferSrvHandle().ptr);
@@ -226,7 +226,7 @@ void ProgressiveRaytracingPipeline::render(ID3D12GraphicsCommandList *commandLis
         }
     }
 
-    for (int rayType = 0; rayType < program->getMissProgramCount(); ++rayType) {
+    for (UINT rayType = 0; rayType < program->getMissProgramCount(); ++rayType) {
         auto &missVars = mRtBindings->getMissVars(rayType);
         missVars->appendHeapRanges(mTextureSrvGpuHandles[0].ptr);
         missVars->appendHeapRanges(mTextureSrvGpuHandles[1].ptr);
@@ -278,8 +278,8 @@ void ProgressiveRaytracingPipeline::userInterface()
         }
 
         if (mFrameAccumulationEnabled) {
-            int currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
-            int oldMaxIterations = mShaderDebugOptions.maxIterations;
+            UINT currentIterations = min(mAccumCount, mShaderDebugOptions.maxIterations);
+            UINT oldMaxIterations = mShaderDebugOptions.maxIterations;
             if (ui::SliderInt("Max Iterations", (int*)&mShaderDebugOptions.maxIterations, 1, 2048)) {
                 frameDirty |= (mShaderDebugOptions.maxIterations < mAccumCount);
                 mAccumCount = min(mAccumCount, oldMaxIterations);

@@ -32,10 +32,10 @@ namespace DXRFramework
         mNumTriangles = 0;
 
         if (scene) {
-            for (int meshId = 0; meshId < scene->mNumMeshes; ++meshId) {
+            for (UINT meshId = 0; meshId < scene->mNumMeshes; ++meshId) {
                 const auto &mesh = scene->mMeshes[meshId];
 
-                for (int i = 0; i < mesh->mNumVertices; ++i) {
+                for (UINT i = 0; i < mesh->mNumVertices; ++i) {
                     aiVector3D &position = mesh->mVertices[i];
                     aiVector3D &normal = mesh->mNormals[i];
                     Vertex vertex;
@@ -44,7 +44,7 @@ namespace DXRFramework
                     interleavedVertexData.emplace_back(vertex);
                 }
 
-                for (int i = 0; i < mesh->mNumFaces; ++i) {
+                for (UINT i = 0; i < mesh->mNumFaces; ++i) {
                     const aiFace &face = mesh->mFaces[i];
                     assert(face.mNumIndices == 3);
                     indices.push_back(mNumVertices + face.mIndices[0]);
@@ -64,7 +64,7 @@ namespace DXRFramework
             };
             indices = { 0, 2, 1 };
             mNumTriangles = 1;
-            mNumVertices = interleavedVertexData.size();
+            mNumVertices = static_cast<UINT>(interleavedVertexData.size());
         }
 
         mHasIndexBuffer = indices.size() > 0;

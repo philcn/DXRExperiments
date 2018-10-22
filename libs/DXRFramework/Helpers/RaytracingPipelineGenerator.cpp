@@ -545,7 +545,7 @@ RayTracingPipelineGenerator::Library::Library(IDxcBlob* dxil,
                                               const std::vector<std::wstring>& exportedSymbols)
     : m_dxil(dxil), m_exportedSymbols(exportedSymbols), m_exports(exportedSymbols.size())
 {
-  Construct(dxil->GetBufferPointer(), dxil->GetBufferSize());
+  Construct(dxil->GetBufferPointer(), static_cast<UINT>(dxil->GetBufferSize()));
 }
 
 RayTracingPipelineGenerator::Library::Library(const void *shaderBytecode, UINT bytecodeSize, 
@@ -583,10 +583,10 @@ RayTracingPipelineGenerator::Library::Library(const Library& source)
 {
   if (source.m_dxil) {
     m_dxil = source.m_dxil;
-    Construct(m_dxil->GetBufferPointer(), m_dxil->GetBufferSize());
+    Construct(m_dxil->GetBufferPointer(), static_cast<UINT>(m_dxil->GetBufferSize()));
   } else {
     m_dxil = nullptr;
-    Construct(source.m_libDesc.DXILLibrary.pShaderBytecode, source.m_libDesc.DXILLibrary.BytecodeLength);
+    Construct(source.m_libDesc.DXILLibrary.pShaderBytecode, static_cast<UINT>(source.m_libDesc.DXILLibrary.BytecodeLength));
   }
 }
 

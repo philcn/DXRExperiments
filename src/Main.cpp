@@ -9,7 +9,7 @@
 //
 //*********************************************************
 
-#include "stdafx.h"
+#include "pch.h"
 #include "DXRFrameworkApp.h"
 
 _Use_decl_annotations_

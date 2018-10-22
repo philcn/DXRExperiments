@@ -26,8 +26,7 @@
 #pragma comment(lib, "dxguid.lib")
 
 #include <stdint.h>
-
-#define ASSERT()
+#include <assert.h>
 
 namespace GameCore
 {
@@ -198,14 +197,14 @@ namespace
 
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
         if (FAILED(DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&s_DI, nullptr)))
-            ASSERT(false, "DirectInput8 initialization failed.");
+            assert(0); // DirectInput8 initialization failed.
 
         if (FAILED(s_DI->CreateDevice(GUID_SysKeyboard, &s_Keyboard, nullptr)))
-            ASSERT(false, "Keyboard CreateDevice failed.");
+            assert(0); // Keyboard CreateDevice failed.
         if (FAILED(s_Keyboard->SetDataFormat(&c_dfDIKeyboard)))
-            ASSERT(false, "Keyboard SetDataFormat failed.");
+            assert(0); // Keyboard SetDataFormat failed.
         if (FAILED(s_Keyboard->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)))
-            ASSERT(false, "Keyboard SetCooperativeLevel failed.");
+            assert(0); // Keyboard SetCooperativeLevel failed.
 
         DIPROPDWORD dipdw;
         dipdw.diph.dwSize = sizeof(DIPROPDWORD);
@@ -214,14 +213,14 @@ namespace
         dipdw.diph.dwHow = DIPH_DEVICE;
         dipdw.dwData = 10;
         if (FAILED(s_Keyboard->SetProperty(DIPROP_BUFFERSIZE, &dipdw.diph)))
-            ASSERT(false, "Keyboard set buffer size failed.");
+            assert(0); // Keyboard set buffer size failed.
 
         if (FAILED(s_DI->CreateDevice(GUID_SysMouse, &s_Mouse, nullptr)))
-            ASSERT(false, "Mouse CreateDevice failed.");
+            assert(0); // Mouse CreateDevice failed.
         if (FAILED(s_Mouse->SetDataFormat(&c_dfDIMouse2)))
-            ASSERT(false, "Mouse SetDataFormat failed.");
+            assert(0); // Mouse SetDataFormat failed.
         if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
-            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+            assert(0); // Mouse SetCooperativeLevel failed.
 #endif
 
         KbmZeroInputs();
@@ -376,13 +375,13 @@ void GameInput::SetCaptureMouse( bool captureMouse )
     {
         s_Mouse->Unacquire();
         if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_EXCLUSIVE)))
-            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+            assert(0); // Mouse SetCooperativeLevel failed.
     } 
     else 
     {
         s_Mouse->Unacquire();
         if (FAILED(s_Mouse->SetCooperativeLevel(GameCore::g_hWnd, DISCL_FOREGROUND | DISCL_NONEXCLUSIVE)))
-            ASSERT(false, "Mouse SetCooperativeLevel failed.");
+            assert(0); // Mouse SetCooperativeLevel failed.
     }
 }
 

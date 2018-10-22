@@ -9,7 +9,7 @@
 //
 //*********************************************************
 
-#include "stdafx.h"
+#include "pch.h"
 #include "Win32Application.h"
 
 HWND Win32Application::m_hwnd = nullptr;

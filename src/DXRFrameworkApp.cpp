@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "DXRFrameworkApp.h"
 #include "ProgressiveRaytracingPipeline.h"
 #include "RealtimeRaytracingPipeline.h"
@@ -147,7 +147,7 @@ void DXRFrameworkApp::OnUpdate()
     mCamController->Update(deltaTime);
 
     {
-        if (ui::Combo("Pipeline Select", &mActivePipelineIndex, mPipelineNames.data(), mRaytracingPipelines.size())) {
+        if (ui::Combo("Pipeline Select", &mActivePipelineIndex, mPipelineNames.data(), static_cast<int>(mRaytracingPipelines.size()))) {
             mActiveRaytracingPipeline = mRaytracingPipelines[mActivePipelineIndex].get();
         }
 

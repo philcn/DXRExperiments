@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include "pch.h"
 #include "DenoiseCompositor.h"
 #include "CompiledShaders/DenoiseCompositorH.hlsl.h"
 #include "CompiledShaders/DenoiseCompositorV.hlsl.h"
