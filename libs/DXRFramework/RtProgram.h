@@ -3,10 +3,10 @@
 #include "RtPrefix.h"
 #include "RtContext.h"
 #include "RtShader.h"
-#include "dxcapi.h"
 #include "Helpers/RootSignatureGenerator.h"
-#include <vector>
+#include "dxcapi.h"
 #include <functional>
+#include <vector>
 
 // The max scalars supported by Nvidia driver
 #define DXR_MAX_PAYLOAD_SIZE_IN_BYTES (14 * sizeof(float))

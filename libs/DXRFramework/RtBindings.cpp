@@ -1,6 +1,5 @@
 #include "RtBindings.h"
 #include "Helpers/DirectXRaytracingHelper.h"
-#include "RaytracingHlslCompat.h"
 #include <codecvt>
 
 namespace DXRFramework
@@ -30,7 +29,7 @@ namespace DXRFramework
         mGlobalParams = RtParams::create();
 
         // Find the max root-signature size, create params with root signatures and reserve space
-        uint32_t maxRootSigSize = sizeof(UINT64) * 2 + sizeof(MaterialParams); // TEMP
+        uint32_t maxRootSigSize = 80; // TEMP
 
         mRayGenParams = RtParams::create(mProgramIdentifierSize);
         mRayGenParams->allocateStorage(maxRootSigSize);

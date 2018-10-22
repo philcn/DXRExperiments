@@ -1,5 +1,4 @@
 #include "RtShader.h"
-#include "RaytracingHlslCompat.h"
 
 namespace DXRFramework
 {

@@ -1,7 +1,5 @@
 #include "RtProgram.h"
 
-extern bool gVertexBufferUseRootTableInsteadOfRootView;
-
 namespace DXRFramework
 {
     RtProgram::ShaderLibrary::ShaderLibrary(IDxcBlob* dxil, const std::vector<std::wstring>& symbolExports)

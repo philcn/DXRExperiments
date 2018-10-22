@@ -1,13 +1,21 @@
 #include "RtModel.h"
-#include "RaytracingHlslCompat.h" // for Vertex
 #include "Helpers/BottomLevelASGenerator.h"
 #include "Helpers/DirectXRaytracingHelper.h"
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
+#include <DirectXMath.h>
+
+using namespace DirectX;
 
 namespace DXRFramework
 {
+    struct Vertex
+    {
+        XMFLOAT3 position;
+        XMFLOAT3 normal;
+    };
+
     RtModel::SharedPtr RtModel::create(RtContext::SharedPtr context, const std::string &filePath)
     {
         return SharedPtr(new RtModel(context, filePath));
