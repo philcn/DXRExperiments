@@ -92,16 +92,16 @@ void DXRExperimentsApp::InitRaytracing()
     materials.resize(1);
     {
         RaytracingPipeline::Material &material1 = materials[0];
-        material1.params.albedo = XMFLOAT4(0.95f, 0.95f, 0.95f, 1.0f);
+        material1.params.albedo = XMFLOAT4(0.95f, 0.05f, 0.0f, 1.0f);
         material1.params.specular = XMFLOAT4(0.58f, 0.58f, 0.58f, 1.0f);
-        material1.params.roughness = 0.08f;
-        material1.params.reflectivity = 1.0f;
+        material1.params.roughness = 0.5f;
+        material1.params.reflectivity = 0.7f;
         material1.params.type = 1;
     }
 
     // Create raytracing pipelines
-    mRaytracingPipelines.emplace_back(RealtimeRaytracingPipeline::create(mRtContext));
     mRaytracingPipelines.emplace_back(ProgressiveRaytracingPipeline::create(mRtContext));
+    mRaytracingPipelines.emplace_back(RealtimeRaytracingPipeline::create(mRtContext));
 
     // Populate raytracing pipelines
     for (auto pipeline : mRaytracingPipelines) {

@@ -11,7 +11,7 @@
 using namespace DXRFramework;
 
 static XMFLOAT4 pointLightColor = XMFLOAT4(0.2f, 0.8f, 0.6f, 2.0f);
-static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.0f, 0.0f, 1.0f);
+static XMFLOAT4 dirLightColor = XMFLOAT4(0.9f, 0.9f, 0.9f, 1.0f);
 
 namespace GlobalRootSignatureParams 
 {
@@ -26,7 +26,7 @@ namespace GlobalRootSignatureParams
 
 ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPtr context) :
     mRtContext(context),
-    mFrameAccumulationEnabled(false),
+    mFrameAccumulationEnabled(true),
     mAnimationPaused(true),
     mActive(true)
 {
@@ -79,7 +79,7 @@ ProgressiveRaytracingPipeline::ProgressiveRaytracingPipeline(RtContext::SharedPt
     mShaderDebugOptions.showGBufferAlbedoOnly = false;
     mShaderDebugOptions.showDirectLightingOnly = false;
     mShaderDebugOptions.showFresnelTerm = false;
-    mShaderDebugOptions.noIndirectDiffuse = true;
+    mShaderDebugOptions.noIndirectDiffuse = false;
     mShaderDebugOptions.environmentStrength = 1.0f;
     mShaderDebugOptions.debug = 0;
 
