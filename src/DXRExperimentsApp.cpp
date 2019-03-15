@@ -16,7 +16,8 @@ namespace GameCore
 
 DXRExperimentsApp::DXRExperimentsApp(UINT width, UINT height, std::wstring name) :
     DXSample(width, height, name),
-    mBypassRaytracing(false)
+    mBypassRaytracing(false),
+    mForceComputeFallback(false) // Set this to true if you're running on RTX cards but wants to force compute path
 {
     UpdateForSizeChange(width, height);
 }
@@ -37,7 +38,10 @@ void DXRExperimentsApp::OnInit()
     m_deviceResources->SetWindow(Win32Application::GetHwnd(), GetWidth(), GetHeight());
     m_deviceResources->InitializeDXGIAdapter();
     mNativeDxrSupported = IsDirectXRaytracingSupported(m_deviceResources->GetAdapter());
-    ThrowIfFalse(EnableComputeRaytracingFallback(m_deviceResources->GetAdapter()));
+    if (!mNativeDxrSupported || mForceComputeFallback) {
+        // This requires Windows developer mode
+        ThrowIfFalse(EnableExperimentalFeatureForComputeFallback(m_deviceResources->GetAdapter()));
+    }
 
     m_deviceResources->CreateDeviceResources();
     m_deviceResources->CreateWindowSizeDependentResources();
@@ -76,7 +80,7 @@ void DXRExperimentsApp::InitRaytracing()
     auto device = m_deviceResources->GetD3DDevice();
     auto commandList = m_deviceResources->GetCommandList();
 
-    mRtContext = RtContext::create(device, commandList, false /* force compute */);
+    mRtContext = RtContext::create(device, commandList, mForceComputeFallback);
 
     // Create scene
     mRtScene = RtScene::create();

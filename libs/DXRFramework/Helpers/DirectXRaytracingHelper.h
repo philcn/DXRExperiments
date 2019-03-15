@@ -232,7 +232,7 @@ inline ID3D12DescriptorHeap* CreateDescriptorHeap(ID3D12Device* device, uint32_t
 // Enable experimental features required for compute-based raytracing fallback.
 // This will set active D3D12 devices to DEVICE_REMOVED state.
 // Returns bool whether the call succeeded and the device supports the feature.
-inline bool EnableComputeRaytracingFallback(IDXGIAdapter1* adapter)
+inline bool EnableExperimentalFeatureForComputeFallback(IDXGIAdapter1* adapter)
 {
     ComPtr<ID3D12Device> testDevice;
     UUID experimentalFeatures[] = { D3D12ExperimentalShaderModels };

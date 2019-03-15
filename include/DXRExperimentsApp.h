@@ -27,6 +27,7 @@ private:
     static const UINT FrameCount = 3;
 
     bool mNativeDxrSupported;
+    bool mForceComputeFallback;
     bool mBypassRaytracing;
 
     std::shared_ptr<Math::Camera> mCamera;
