@@ -30,6 +30,8 @@ The support for non-Nvidia GPUs are limited as per DXR Fallback Layer.
 
 ## Setup Guide
 
+Enable developer mode for Windows 10. This is only required by the compute based fallback layer.
+
 Clone the Github repo, then initialize the submodules with
 
 ```
